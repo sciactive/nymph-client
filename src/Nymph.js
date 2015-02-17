@@ -315,6 +315,44 @@ license LGPL
 			return this.deleteEntity(entities, true);
 		},
 
+		updateArray: function(oldArr, newArrIn){
+			var newArr = Array.prototype.slice.call(newArrIn);
+			var idMap = {};
+			for (var i = 0; i < newArr.length; i++) {
+				if (newArr[i] instanceof Entity && newArr[i].guid) {
+					idMap[newArr[i].guid] = i;
+				}
+			}
+			var remove = [];
+			for (var k in oldArr) {
+				if (oldArr.hasOwnProperty(k) && /^0$|^[1-9]\d*$/.test(k) && k <= 4294967294) { // This handles sparse arrays.
+					k = Number(k);
+					if (typeof idMap[oldArr[k].guid] === "undefined") {
+						// It was deleted.
+						remove.push(k);
+					} else if (newArr[idMap[oldArr[k].guid]].mdate > oldArr[k].mdate) {
+						// It was modified.
+						oldArr[k].init(newArr[idMap[oldArr[k].guid]].toJSON());
+						delete idMap[oldArr[k].guid];
+					} else if (newArr[idMap[oldArr[k].guid]].mdate === oldArr[k].mdate) {
+						// Item wasn't modified.
+						delete idMap[oldArr[k].guid];
+					}
+				}
+			}
+			// Now we must remove the deleted ones.
+			remove.sort().reverse();
+			for (var n = 0; n < remove.length; n++) {
+				oldArr.splice(remove[n], 1);
+			}
+			// And add the new ones.
+			for (var v in idMap) {
+				if (idMap.hasOwnProperty(v)) {
+					oldArr.splice(oldArr.length, 0, newArr[idMap[v]]);
+				}
+			}
+		},
+
 		serverCall: function(entity, method, params) {
 			var that = this;
 			return new Promise(function(resolve, reject){
