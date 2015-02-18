@@ -47,6 +47,17 @@
 						}
 					});
 				}
+				if (typeof data.uid !== "undefined" && typeof that.subscriptions.uids[data.uid] !== "undefined") {
+					Nymph.getUID.call(Nymph, data.uid).then(function(){
+						for (var i=0; i < that.subscriptions.uids[data.uid].length; i++) {
+							that.subscriptions.uids[data.uid][i][0].apply(this, arguments);
+						}
+					}, function(){
+						for (var i=0; i < that.subscriptions.uids[data.uid].length; i++) {
+							that.subscriptions.uids[data.uid][i][1].apply(this, arguments);
+						}
+					});
+				}
 			};
 		},
 
@@ -56,11 +67,11 @@
 				if (that.connection.readyState === 1) {
 					if (typeof that.subscriptions.queries[query] === "undefined") {
 						that.subscriptions.queries[query] = [];
-						that.connection.send(JSON.stringify({
-							"action": "subscribe",
-							"query": query
-						}));
 					}
+					that.connection.send(JSON.stringify({
+						"action": "subscribe",
+						"query": query
+					}));
 					that.subscriptions.queries[query].push(callbacks);
 					clearInterval(int);
 				}
@@ -83,11 +94,11 @@
 					that.subscriptions.queries[query].splice(idx, 1);
 					if (!that.subscriptions.queries[query].length) {
 						delete that.subscriptions.queries[query];
-						that.connection.send(JSON.stringify({
-							"action": "unsubscribe",
-							"query": query
-						}));
 					}
+					that.connection.send(JSON.stringify({
+						"action": "unsubscribe",
+						"query": query
+					}));
 					clearInterval(int);
 				}
 			};
@@ -101,11 +112,11 @@
 				if (that.connection.readyState === 1) {
 					if (typeof that.subscriptions.uids[name] === "undefined") {
 						that.subscriptions.uids[name] = [];
-						that.connection.send(JSON.stringify({
-							"action": "subscribe",
-							"uid": name
-						}));
 					}
+					that.connection.send(JSON.stringify({
+						"action": "subscribe",
+						"uid": name
+					}));
 					that.subscriptions.uids[name].push(callbacks);
 					clearInterval(int);
 				}
@@ -128,11 +139,11 @@
 					that.subscriptions.uids[name].splice(idx, 1);
 					if (!that.subscriptions.uids[name].length) {
 						delete that.subscriptions.uids[name];
-						that.connection.send(JSON.stringify({
-							"action": "unsubscribe",
-							"uid": name
-						}));
 					}
+					that.connection.send(JSON.stringify({
+						"action": "unsubscribe",
+						"uid": name
+					}));
 					clearInterval(int);
 				}
 			};

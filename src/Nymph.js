@@ -142,7 +142,7 @@ license LGPL
 					dataType: 'text',
 					data: {'action': 'uid', 'data': name},
 					success: function(data) {
-						resolve(data);
+						resolve(Number(data));
 					},
 					error: function(errObj){
 						reject(errObj);
@@ -175,7 +175,7 @@ license LGPL
 					dataType: 'text',
 					data: {'action': 'uid', 'data': name},
 					success: function(data) {
-						resolve(data);
+						resolve(Number(data));
 					},
 					error: function(errObj){
 						reject(errObj);
