@@ -11,6 +11,9 @@
 	NymphPubSub = {
 		// === Class Variables ===
 		connection: null,
+		pubsubURL: null,
+		rateLimit: null,
+		debouncers: {},
 		subscriptions: {
 			queries: {},
 			uids: {}
@@ -19,7 +22,9 @@
 		// === Class Methods ===
 		init: function(NymphOptions){
 			this.pubsubURL = NymphOptions.pubsubURL;
-			this.rateLimit = NymphOptions.rateLimit;
+			if (NymphOptions.rateLimit) {
+				this.rateLimit = NymphOptions.rateLimit;
+			}
 
 			this.connect();
 
@@ -35,28 +40,62 @@
 			};
 
 			this.connection.onmessage = function(e) {
-				var data = JSON.parse(e.data);
-				if (typeof data.query !== "undefined" && typeof that.subscriptions.queries[data.query] !== "undefined") {
-					Nymph.getEntities.apply(Nymph, JSON.parse(data.query)).then(function(){
-						for (var i=0; i < that.subscriptions.queries[data.query].length; i++) {
-							that.subscriptions.queries[data.query][i][0].apply(this, arguments);
+				if (!that.rateLimit || typeof that.debouncers[e.data] === "undefined") {
+					var func = function(){
+						var data = JSON.parse(e.data);
+						if (typeof data.query !== "undefined" && typeof that.subscriptions.queries[data.query] !== "undefined") {
+							Nymph.getEntities.apply(Nymph, JSON.parse(data.query)).then(function(){
+								for (var i=0; i < that.subscriptions.queries[data.query].length; i++) {
+									that.subscriptions.queries[data.query][i][0].apply(this, arguments);
+								}
+							}, function(){
+								for (var i=0; i < that.subscriptions.queries[data.query].length; i++) {
+									that.subscriptions.queries[data.query][i][1].apply(this, arguments);
+								}
+							});
 						}
-					}, function(){
-						for (var i=0; i < that.subscriptions.queries[data.query].length; i++) {
-							that.subscriptions.queries[data.query][i][1].apply(this, arguments);
+						if (typeof data.uid !== "undefined" && typeof that.subscriptions.uids[data.uid] !== "undefined") {
+							Nymph.getUID.call(Nymph, data.uid).then(function(){
+								for (var i=0; i < that.subscriptions.uids[data.uid].length; i++) {
+									that.subscriptions.uids[data.uid][i][0].apply(this, arguments);
+								}
+							}, function(){
+								for (var i=0; i < that.subscriptions.uids[data.uid].length; i++) {
+									that.subscriptions.uids[data.uid][i][1].apply(this, arguments);
+								}
+							});
 						}
-					});
+						if (that.rateLimit) {
+							delete that.debouncers[e.data];
+						}
+					};
 				}
-				if (typeof data.uid !== "undefined" && typeof that.subscriptions.uids[data.uid] !== "undefined") {
-					Nymph.getUID.call(Nymph, data.uid).then(function(){
-						for (var i=0; i < that.subscriptions.uids[data.uid].length; i++) {
-							that.subscriptions.uids[data.uid][i][0].apply(this, arguments);
-						}
-					}, function(){
-						for (var i=0; i < that.subscriptions.uids[data.uid].length; i++) {
-							that.subscriptions.uids[data.uid][i][1].apply(this, arguments);
-						}
-					});
+				if (!that.rateLimit) {
+					func();
+					return;
+				}
+				if (typeof that.debouncers[e.data] === "undefined") {
+					that.debouncers[e.data] = that.debounce(func);
+				}
+				that.debouncers[e.data]();
+			};
+		},
+
+		debounce: function(func, immediate){
+			var timeout, that = this;
+			return function(){
+				var context = this, args = arguments;
+				var later = function(){
+					timeout = null;
+					if (!immediate) {
+						func.apply(context, args);
+					}
+				};
+				var callNow = immediate && !timeout;
+				clearTimeout(timeout);
+				timeout = setTimeout(later, that.rateLimit);
+				if (callNow) {
+					func.apply(context, args);
 				}
 			};
 		},
