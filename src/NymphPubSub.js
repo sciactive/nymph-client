@@ -49,26 +49,42 @@ license LGPL
 					var func = function(){
 						var data = JSON.parse(e.data);
 						if (typeof data.query !== "undefined" && typeof that.subscriptions.queries[data.query] !== "undefined") {
-							Nymph.getEntities.apply(Nymph, JSON.parse(data.query)).then(function(){
-								for (var i=0; i < that.subscriptions.queries[data.query].length; i++) {
-									that.subscriptions.queries[data.query][i][0].apply(this, arguments);
+							if (typeof data.count !== "undefined") {
+								for (var i=0; typeof that.subscriptions.queries[data.query] !== "undefined" && i < that.subscriptions.queries[data.query].length; i++) {
+									if (typeof that.subscriptions.queries[data.query][i][2] !== "undefined") {
+										that.subscriptions.queries[data.query][i][2](data.count);
+									}
 								}
-							}, function(){
-								for (var i=0; i < that.subscriptions.queries[data.query].length; i++) {
-									that.subscriptions.queries[data.query][i][1].apply(this, arguments);
-								}
-							});
+							} else {
+								Nymph.getEntities.apply(Nymph, JSON.parse(data.query)).then(function(){
+									for (var i=0; typeof that.subscriptions.queries[data.query] !== "undefined" && i < that.subscriptions.queries[data.query].length; i++) {
+										that.subscriptions.queries[data.query][i][0].apply(this, arguments);
+									}
+								}, function(){
+									for (var i=0; typeof that.subscriptions.queries[data.query] !== "undefined" && i < that.subscriptions.queries[data.query].length; i++) {
+										that.subscriptions.queries[data.query][i][1].apply(this, arguments);
+									}
+								});
+							}
 						}
 						if (typeof data.uid !== "undefined" && typeof that.subscriptions.uids[data.uid] !== "undefined") {
-							Nymph.getUID.call(Nymph, data.uid).then(function(){
-								for (var i=0; i < that.subscriptions.uids[data.uid].length; i++) {
-									that.subscriptions.uids[data.uid][i][0].apply(this, arguments);
+							if (typeof data.count !== "undefined") {
+								for (var i=0; typeof that.subscriptions.uids[data.uid] !== "undefined" && i < that.subscriptions.uids[data.uid].length; i++) {
+									if (typeof that.subscriptions.uids[data.uid][i][2] !== "undefined") {
+										that.subscriptions.uids[data.uid][i][2](data.count);
+									}
 								}
-							}, function(){
-								for (var i=0; i < that.subscriptions.uids[data.uid].length; i++) {
-									that.subscriptions.uids[data.uid][i][1].apply(this, arguments);
-								}
-							});
+							} else {
+								Nymph.getUID.call(Nymph, data.uid).then(function(){
+									for (var i=0; typeof that.subscriptions.uids[data.uid] !== "undefined" && i < that.subscriptions.uids[data.uid].length; i++) {
+										that.subscriptions.uids[data.uid][i][0].apply(this, arguments);
+									}
+								}, function(){
+									for (var i=0; typeof that.subscriptions.uids[data.uid] !== "undefined" && i < that.subscriptions.uids[data.uid].length; i++) {
+										that.subscriptions.uids[data.uid][i][1].apply(this, arguments);
+									}
+								});
+							}
 						}
 						if (that.rateLimit) {
 							delete that.debouncers[e.data];
@@ -114,7 +130,8 @@ license LGPL
 					}
 					that.connection.send(JSON.stringify({
 						"action": "subscribe",
-						"query": query
+						"query": query,
+						"count": typeof callbacks[2] !== "undefined"
 					}));
 					that.subscriptions.queries[query].push(callbacks);
 					clearInterval(int);
@@ -159,7 +176,8 @@ license LGPL
 					}
 					that.connection.send(JSON.stringify({
 						"action": "subscribe",
-						"uid": name
+						"uid": name,
+						"count": typeof callbacks[2] !== "undefined"
 					}));
 					that.subscriptions.uids[name].push(callbacks);
 					clearInterval(int);
@@ -204,8 +222,8 @@ license LGPL
 		var args = Array.prototype.slice.call(arguments);
 		var promise = getEntities.apply(Nymph, args);
 		promise.query = JSON.stringify(args);
-		promise.subscribe = function(resolve, reject){
-			var callbacks = [resolve, reject];
+		promise.subscribe = function(resolve, reject, count){
+			var callbacks = [resolve, reject, count];
 
 			promise.then(resolve, reject);
 
@@ -223,7 +241,7 @@ license LGPL
 		var promise = getEntity.apply(Nymph, args);
 		args[0].limit = 1;
 		promise.query = JSON.stringify(args);
-		promise.subscribe = function(resolve, reject){
+		promise.subscribe = function(resolve, reject, count){
 			var newResolve = function(args){
 				if (!args.length) {
 					if (resolve){
@@ -235,7 +253,7 @@ license LGPL
 					}
 				}
 			};
-			var callbacks = [newResolve, reject];
+			var callbacks = [newResolve, reject, count];
 
 			promise.then(resolve, reject);
 
@@ -250,8 +268,8 @@ license LGPL
 	};
 	Nymph.getUID = function(name){
 		var promise = getUID.apply(Nymph, [name]);
-		promise.subscribe = function(resolve, reject){
-			var callbacks = [resolve, reject];
+		promise.subscribe = function(resolve, reject, count){
+			var callbacks = [resolve, reject, count];
 
 			promise.then(resolve, reject);
 
@@ -264,7 +282,7 @@ license LGPL
 		};
 		return promise;
 	};
-	Entity.prototype.subscribe = function(resolve, reject){
+	Entity.prototype.subscribe = function(resolve, reject, count){
 		if (!this.guid) {
 			return false;
 		}
@@ -285,7 +303,7 @@ license LGPL
 				}
 			}
 		};
-		var callbacks = [newResolve, reject];
+		var callbacks = [newResolve, reject, count];
 
 		NymphPubSub.subscribeQuery(jsonQuery, callbacks);
 		return {
