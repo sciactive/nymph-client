@@ -1,13 +1,18 @@
+/*
+Nymph-PubSub 1.4.0-beta.2 nymph.io
+(C) 2014 Hunter Perrin
+license LGPL
+*/
 // Uses AMD or browser globals.
 (function (factory) {
     if (typeof define === 'function' && define.amd) {
         // AMD. Register as a module.
-        define('NymphPubSub', ['NymphEntity', 'Nymph', 'NymphOptions', 'Promise'], factory);
+        define('NymphPubSub', ['NymphEntity', 'Nymph', 'NymphOptions'], factory);
     } else {
         // Browser globals
-        factory(Entity, Nymph, NymphOptions, Promise);
+        factory(Entity, Nymph, NymphOptions);
     }
-}(function(Entity, Nymph, NymphOptions, Promise){
+}(function(Entity, Nymph, NymphOptions){
 	NymphPubSub = {
 		// === Class Variables ===
 		connection: null,
