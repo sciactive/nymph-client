@@ -3,25 +3,42 @@ Nymph 1.4.0-beta.4 nymph.io
 (C) 2014 Hunter Perrin
 license LGPL
 */
+/* global define */
+/* global Promise */
+/* global NymphOptions */
 // Uses AMD or browser globals.
-(function (factory) {
+(function(factory){
+	'use strict';
     if (typeof define === 'function' && define.amd) {
         // AMD. Register as a module.
-        define('Nymph', ['NymphOptions', 'Promise'], factory);
+        define('Nymph', ['NymphEntity', 'NymphOptions', 'Promise'], factory);
     } else {
         // Browser globals
-        factory(NymphOptions, Promise);
+        factory(NymphOptions, Promise, window);
     }
-}(function(NymphOptions, Promise){
+}(function(NymphOptions, Promise, context){
+	'use strict';
+	if (typeof context === "undefined") {
+		context = {};
+	}
 	var sortProperty = null,
 		sortParent = null,
 		sortCaseSensitive = null,
+		getEntityClass = function(){
+			if (typeof context.Entity !== "undefined") {
+				return context.Entity;
+			} else if (require) {
+				return require('NymphEntity');
+			} else {
+				return null;
+			}
+		},
 		arraySortProperty = function(a, b){
 			var aprop, bprop,
 				property = sortProperty,
 				parent = sortParent,
 				notData = property === "guid" || property === "cdate" || property === "mdate";
-			if (parent !== null && ((a.data[parent] instanceof Entity && typeof (notData ? a.data[parent][property] : a.data[parent].data[property]) !== "undefined") || (b.data[parent] instanceof Entity && typeof (notData ? b.data[parent][property] : b.data[parent].data[property]) !== "undefined"))) {
+			if (parent !== null && ((a.data[parent] instanceof getEntityClass() && typeof (notData ? a.data[parent][property] : a.data[parent].data[property]) !== "undefined") || (b.data[parent] instanceof getEntityClass() && typeof (notData ? b.data[parent][property] : b.data[parent].data[property]) !== "undefined"))) {
 				if (!sortCaseSensitive && typeof (notData ? a.data[parent][property] : a.data[parent].data[property]) === "string" && typeof (notData ? b.data[parent][property] : b.data[parent].data[property]) === "string") {
 					aprop = (notData ? a.data[parent][property] : a.data[parent].data[property]).toUpperCase();
 					bprop = (notData ? b.data[parent][property] : b.data[parent].data[property]).toUpperCase();
@@ -119,7 +136,7 @@ license LGPL
 			request = null;
 		};
 
-	Nymph = {
+	context.Nymph = {
 		// The current version of Nymph.
 		version: "1.4.0-beta.4",
 
@@ -274,12 +291,12 @@ license LGPL
 		},
 		initEntity: function(entityJSON){
 			var entity;
-			if (typeof entityJSON.class === "string" && typeof window[entityJSON.class] !== "undefined" && typeof window[entityJSON.class].prototype.init === "function") {
-				entity = new window[entityJSON.class]();
+			if (typeof entityJSON.class === "string" && typeof context[entityJSON.class] !== "undefined" && typeof context[entityJSON.class].prototype.init === "function") {
+				entity = new context[entityJSON.class]();
 			} else if (typeof require !== 'undefined' && require('Nymph'+entityJSON.class).prototype.init === "function") {
-				entity = new require('Nymph'+entityJSON.class)();
+				entity = new (require('Nymph'+entityJSON.class))();
 			} else {
-				throw new NymphClassNotAvailableError(entityJSON.class+" class cannot be found.");
+				throw new context.NymphClassNotAvailableError(entityJSON.class+" class cannot be found.");
 			}
 			return entity.init(entityJSON);
 		},
@@ -319,7 +336,7 @@ license LGPL
 			var newArr = Array.prototype.slice.call(newArrIn);
 			var idMap = {};
 			for (var i = 0; i < newArr.length; i++) {
-				if (newArr[i] instanceof Entity && newArr[i].guid) {
+				if (newArr[i] instanceof getEntityClass() && newArr[i].guid) {
 					idMap[newArr[i].guid] = i;
 				}
 			}
@@ -469,12 +486,12 @@ license LGPL
 		}
 	};
 
-	NymphClassNotAvailableError = function(message){
+	context.NymphClassNotAvailableError = function(message){
 		this.name = 'NymphClassNotAvailableError';
 		this.message = message;
 		this.stack = (new Error()).stack;
 	};
-	NymphClassNotAvailableError.prototype = new Error();
+	context.NymphClassNotAvailableError.prototype = new Error();
 
-	return Nymph.init(NymphOptions);
+	return context.Nymph.init(NymphOptions);
 }));

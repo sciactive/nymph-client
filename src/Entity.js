@@ -3,122 +3,137 @@ Nymph Entity 1.4.0-beta.4 nymph.io
 (C) 2014 Hunter Perrin
 license LGPL
 */
+/* global define */
+/* global Promise */
+/* global Nymph */
 // Uses AMD or browser globals.
-(function (factory) {
+(function(factory){
+	'use strict';
     if (typeof define === 'function' && define.amd) {
         // AMD. Register as a module.
         define('NymphEntity', ['Nymph', 'Promise'], factory);
     } else {
         // Browser globals
-        factory(Nymph, Promise);
+        factory(Nymph, Promise, window);
     }
-}(function(Nymph, Promise){
+}(function(Nymph, Promise, context){
+	'use strict';
+	if (typeof context === "undefined") {
+		context = {};
+	}
 	var sleepErr = "This entity is in a sleeping reference state. You must use .ready().then() to wake it.",
-	isArray = Array.isArray || function(arr){
-		return Object.prototype.toString.call(arr) === '[object Array]';
-	}, indexOf = function(array, item){
-		for (var i = 0; i < array.length; i++) {
-			if (array[i] === item) {
-				return i;
-			}
-		}
-		return -1;
-	}, map = function(arr, fn){
-		var results = [];
-		for (var i = 0; i < arr.length; i++) {
-			results.push(fn(arr[i], i));
-		}
-		return results;
-	}, arrayUnique = function(array){
-		var a = array.concat();
-		for(var i=0; i<a.length; ++i) {
-			for(var j=i+1; j<a.length; ++j) {
-				if(a[i] === a[j]) {
-					a.splice(j--, 1);
+		isArray = (Array.isArray || function(arr){
+			return Object.prototype.toString.call(arr) === '[object Array]';
+		}),
+		indexOf = function(array, item){
+			for (var i = 0; i < array.length; i++) {
+				if (array[i] === item) {
+					return i;
 				}
 			}
-		}
-		return a;
-	}, onlyStrings = function(array){
-		var newArray = [];
-		for (var i=0; i<array.length; i++) {
-			if (typeof array[i] === "string") {
-				newArray.push(array[i]);
-			} else {
-				if (typeof array[i].toString === "function") {
-					newArray.push(array[i].toString());
+			return -1;
+		},
+		map = function(arr, fn){
+			var results = [];
+			for (var i = 0; i < arr.length; i++) {
+				results.push(fn(arr[i], i));
+			}
+			return results;
+		},
+		arrayUnique = function(array){
+			var a = array.concat();
+			for(var i=0; i<a.length; ++i) {
+				for(var j=i+1; j<a.length; ++j) {
+					if(a[i] === a[j]) {
+						a.splice(j--, 1);
+					}
 				}
 			}
-		}
-		return newArray;
-	}, getDataReference = function(item) {
-		if (item instanceof Entity && typeof item.toReference === "function") {
-			// Convert entities to references.
-			return item.toReference();
-		} else if (isArray(item)) {
-			// Recurse into lower arrays.
-			return map(item, getDataReference);
-		} else if (item instanceof Object) {
-			var newObj;
-			if (Object.create) {
-				newObj = Object.create(item);
-			} else {
-				var F = function () {};
-				F.prototype = item;
-				newObj = new F();
-			}
-			for (var k in item) {
-				if (item.hasOwnProperty(k)) {
-					newObj[k] = getDataReference(item[k]);
-				}
-			}
-		}
-		// Not an entity or array, just return it.
-		return item;
-	}, getSleepingReference = function(item) {
-		if (isArray(item)) {
-			// Check if it's a reference.
-			if (item[0] === 'nymph_entity_reference') {
-				var entity;
-				if (typeof item[2] === "string" && typeof window[item[2]] !== "undefined" && typeof window[item[2]].prototype.referenceSleep === "function") {
-					entity = new window[item[2]]();
-				} else if (typeof require !== 'undefined' && require('Nymph'+item[2]).prototype.init === "function") {
-					entity = new require('Nymph'+item[2])();
+			return a;
+		},
+		onlyStrings = function(array){
+			var newArray = [];
+			for (var i=0; i<array.length; i++) {
+				if (typeof array[i] === "string") {
+					newArray.push(array[i]);
 				} else {
-					throw new NymphClassNotAvailableError(item[2]+" class cannot be found.");
+					if (typeof array[i].toString === "function") {
+						newArray.push(array[i].toString());
+					}
 				}
-				entity.referenceSleep(item);
-				return entity;
-			} else {
+			}
+			return newArray;
+		},
+		getDataReference = function(item) {
+			if (item instanceof context.Entity && typeof item.toReference === "function") {
+				// Convert entities to references.
+				return item.toReference();
+			} else if (isArray(item)) {
 				// Recurse into lower arrays.
-				return map(item, getSleepingReference);
-			}
-		} else if (item instanceof Object) {
-			for (var k in item) {
-				if (item.hasOwnProperty(k)) {
-					item[k] = getSleepingReference(item[k]);
+				return map(item, getDataReference);
+			} else if (item instanceof Object) {
+				var newObj;
+				if (Object.create) {
+					newObj = Object.create(item);
+				} else {
+					var F = function () {};
+					F.prototype = item;
+					newObj = new F();
+				}
+				for (var k in item) {
+					if (item.hasOwnProperty(k)) {
+						newObj[k] = getDataReference(item[k]);
+					}
 				}
 			}
-		}
-		// Not an array, just return it.
-		return item;
-	}, sortObj = function(obj) { // adapted from http://am.aurlien.net/post/1221493460/sorting-javascript-objects
-		var temp_array = [];
-		for (var key in obj) {
-			if (obj.hasOwnProperty(key)) {
-				temp_array.push(key);
+			// Not an entity or array, just return it.
+			return item;
+		},
+		getSleepingReference = function(item) {
+			if (isArray(item)) {
+				// Check if it's a reference.
+				if (item[0] === 'nymph_entity_reference') {
+					var entity;
+					if (typeof item[2] === "string" && typeof context[item[2]] !== "undefined" && typeof context[item[2]].prototype.referenceSleep === "function") {
+						entity = new context[item[2]]();
+					} else if (typeof require !== 'undefined' && require('Nymph'+item[2]).prototype.init === "function") {
+						entity = new (require('Nymph'+item[2]))();
+					} else {
+						throw new context.NymphClassNotAvailableError(item[2]+" class cannot be found.");
+					}
+					entity.referenceSleep(item);
+					return entity;
+				} else {
+					// Recurse into lower arrays.
+					return map(item, getSleepingReference);
+				}
+			} else if (item instanceof Object) {
+				for (var k in item) {
+					if (item.hasOwnProperty(k)) {
+						item[k] = getSleepingReference(item[k]);
+					}
+				}
 			}
-		}
-		temp_array.sort();
-		var temp_obj = {};
-		for (var i=0; i<temp_array.length; i++) {
-		  temp_obj[temp_array[i]] = obj[temp_array[i]];
-		}
-		return temp_obj;
-	};
+			// Not an array, just return it.
+			return item;
+		},
+		sortObj = function(obj) { // adapted from http://am.aurlien.net/post/1221493460/sorting-javascript-objects
+			var temp_array = [];
+			for (var key in obj) {
+				if (obj.hasOwnProperty(key)) {
+					temp_array.push(key);
+				}
+			}
+			temp_array.sort();
+			var temp_obj = {};
+			for (var i=0; i<temp_array.length; i++) {
+			  temp_obj[temp_array[i]] = obj[temp_array[i]];
+			}
+			return temp_obj;
+		};
 
 
-	Entity = function(id){
+	context.Entity = function(id){
 		this.guid = null;
 		this.cdate = null;
 		this.mdate = null;
@@ -177,7 +192,7 @@ license LGPL
 		// Tag methods.
 		addTag: function(){
 			if (this.isASleepingReference) {
-				throw new EntityIsSleepingReferenceError(sleepErr);
+				throw new context.EntityIsSleepingReferenceError(sleepErr);
 			}
 			var tags;
 			if (isArray(arguments[0])) {
@@ -189,7 +204,7 @@ license LGPL
 		},
 		hasTag: function(){
 			if (this.isASleepingReference) {
-				throw new EntityIsSleepingReferenceError(sleepErr);
+				throw new context.EntityIsSleepingReferenceError(sleepErr);
 			}
 			var tagArray = arguments;
 			if (isArray(arguments[0])) {
@@ -203,8 +218,9 @@ license LGPL
 			return true;
 		},
 		removeTag: function(){
-			if (this.isASleepingReference)
-				throw new EntityIsSleepingReferenceError(sleepErr);
+			if (this.isASleepingReference) {
+				throw new context.EntityIsSleepingReferenceError(sleepErr);
+			}
 			var tagArray = arguments, newTags = [];
 			if (isArray(arguments[0])) {
 				tagArray = tagArray[0];
@@ -220,7 +236,7 @@ license LGPL
 		// Property getter and setter. You can also just access Entity.data directly.
 		get: function(name){
 			if (this.isASleepingReference) {
-				throw new EntityIsSleepingReferenceError(sleepErr);
+				throw new context.EntityIsSleepingReferenceError(sleepErr);
 			}
 			if (isArray(arguments[0])) {
 				var result = {};
@@ -234,7 +250,7 @@ license LGPL
 		},
 		set: function(name, value){
 			if (this.isASleepingReference) {
-				throw new EntityIsSleepingReferenceError(sleepErr);
+				throw new context.EntityIsSleepingReferenceError(sleepErr);
 			}
 			if (typeof name === "object") {
 				for (var k in name) {
@@ -249,23 +265,23 @@ license LGPL
 
 		save: function(){
 			if (this.isASleepingReference) {
-				throw new EntityIsSleepingReferenceError(sleepErr);
+				throw new context.EntityIsSleepingReferenceError(sleepErr);
 			}
 			return Nymph.saveEntity(this);
 		},
 
 		delete: function(){
 			if (this.isASleepingReference) {
-				throw new EntityIsSleepingReferenceError(sleepErr);
+				throw new context.EntityIsSleepingReferenceError(sleepErr);
 			}
 			return Nymph.deleteEntity(this);
 		},
 
 		is: function(object){
 			if (this.isASleepingReference) {
-				throw new EntityIsSleepingReferenceError(sleepErr);
+				throw new context.EntityIsSleepingReferenceError(sleepErr);
 			}
-			if (!(object instanceof Entity)) {
+			if (!(object instanceof context.Entity)) {
 				return false;
 			}
 			if ((this.guid && this.guid > 0) || (object.guid && object.guid > 0)) {
@@ -284,9 +300,9 @@ license LGPL
 		},
 		equals: function(object){
 			if (this.isASleepingReference) {
-				throw new EntityIsSleepingReferenceError(sleepErr);
+				throw new context.EntityIsSleepingReferenceError(sleepErr);
 			}
-			if (!(object instanceof Entity)) {
+			if (!(object instanceof context.Entity)) {
 				return false;
 			}
 			if ((this.guid && this.guid > 0) || (object.guid && object.guid > 0)) {
@@ -308,7 +324,7 @@ license LGPL
 		},
 		inArray: function(array, strict){
 			if (this.isASleepingReference) {
-				throw new EntityIsSleepingReferenceError(sleepErr);
+				throw new context.EntityIsSleepingReferenceError(sleepErr);
 			}
 			if (!isArray(array)) {
 				return false;
@@ -322,7 +338,7 @@ license LGPL
 		},
 		arraySearch: function(array, strict){
 			if (this.isASleepingReference) {
-				throw new EntityIsSleepingReferenceError(sleepErr);
+				throw new context.EntityIsSleepingReferenceError(sleepErr);
 			}
 			if (!isArray(array)) {
 				return false;
@@ -356,7 +372,7 @@ license LGPL
 
 		serverCall: function(method, params, dontUpdateAfterCall){
 			if (this.isASleepingReference) {
-				throw new EntityIsSleepingReferenceError(sleepErr);
+				throw new context.EntityIsSleepingReferenceError(sleepErr);
 			}
 			var that = this;
 			// Turn the params into a real array, in case an arguments object was passed.
@@ -375,7 +391,7 @@ license LGPL
 
 		toJSON: function(){
 			if (this.isASleepingReference) {
-				throw new EntityIsSleepingReferenceError(sleepErr);
+				throw new context.EntityIsSleepingReferenceError(sleepErr);
 			}
 			var obj = {};
 			obj.guid = this.guid;
@@ -455,11 +471,11 @@ license LGPL
 					var promises = [];
 					for (var k in that.data) {
 						if (that.data.hasOwnProperty(k)) {
-							if (that.data[k] instanceof Entity) {
+							if (that.data[k] instanceof context.Entity) {
 								promises.push(that.data[k].readyAll());
 							} else if (isArray(that.data[k])) {
 								for (var i=0; i<that.data[k].length; i++) {
-									if (that.data[k][i] instanceof Entity) {
+									if (that.data[k][i] instanceof context.Entity) {
 										promises.push(that.data[k][i].readyAll());
 									}
 								}
@@ -488,23 +504,23 @@ license LGPL
 	};
 	for (var p in thisClass) {
 		if (thisClass.hasOwnProperty(p)) {
-			Entity.prototype[p] = thisClass[p];
+			context.Entity.prototype[p] = thisClass[p];
 		}
 	}
 
-	EntityIsSleepingReferenceError = function(message){
+	context.EntityIsSleepingReferenceError = function(message){
 		this.name = 'EntityIsSleepingReferenceError';
 		this.message = message;
 		this.stack = (new Error()).stack;
 	};
-	EntityIsSleepingReferenceError.prototype = new Error();
+	context.EntityIsSleepingReferenceError.prototype = new Error();
 
-	NymphClassNotAvailableError = function(message){
+	context.NymphClassNotAvailableError = function(message){
 		this.name = 'NymphClassNotAvailableError';
 		this.message = message;
 		this.stack = (new Error()).stack;
 	};
-	NymphClassNotAvailableError.prototype = new Error();
+	context.NymphClassNotAvailableError.prototype = new Error();
 
-	return Entity;
+	return context.Entity;
 }));
