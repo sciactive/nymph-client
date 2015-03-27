@@ -1,5 +1,5 @@
 /*
-Nymph 1.4.0-beta.4 nymph.io
+Nymph 1.4.0 nymph.io
 (C) 2014 Hunter Perrin
 license LGPL
 */
@@ -138,7 +138,7 @@ license LGPL
 
 	context.Nymph = {
 		// The current version of Nymph.
-		version: "1.4.0-beta.4",
+		version: "1.4.0",
 
 		// === Class Variables ===
 		restURL: null,
