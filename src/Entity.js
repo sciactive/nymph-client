@@ -1,5 +1,5 @@
 /*
-Nymph Entity 1.4.1 nymph.io
+Nymph Entity 1.4.2 nymph.io
 (C) 2014 Hunter Perrin
 license LGPL
 */
@@ -132,7 +132,6 @@ license LGPL
 			return temp_obj;
 		};
 
-
 	context.Entity = function(id){
 		this.guid = null;
 		this.cdate = null;
@@ -151,10 +150,7 @@ license LGPL
 	};
 
 	var thisClass = {
-		// The current version of Entity.
-		version: "1.4.1",
-
-		// === The Name of the Class ===
+		// === The Name of the Server Class ===
 		class: 'Entity',
 
 		// === Class Variables ===
@@ -376,12 +372,24 @@ license LGPL
 			}
 			var that = this;
 			// Turn the params into a real array, in case an arguments object was passed.
-			var paramArray = Array.prototype.splice.call(params);
+			var paramArray = Array.prototype.slice.call(params);
 			return new Promise(function(resolve, reject){
 				Nymph.serverCall(that, method, paramArray).then(function(data){
 					if (!dontUpdateAfterCall) {
 						that.init(data.entity);
 					}
+					resolve(data.return);
+				}, function(errObj){
+					reject(errObj);
+				});
+			});
+		},
+		serverCallStatic: function(method, params){
+			var that = this;
+			// Turn the params into a real array, in case an arguments object was passed.
+			var paramArray = Array.prototype.slice.call(params);
+			return new Promise(function(resolve, reject){
+				Nymph.serverCallStatic(that.class, method, paramArray).then(function(data){
 					resolve(data.return);
 				}, function(errObj){
 					reject(errObj);

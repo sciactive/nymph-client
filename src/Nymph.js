@@ -1,5 +1,5 @@
 /*
-Nymph 1.4.1 nymph.io
+Nymph 1.4.2 nymph.io
 (C) 2014 Hunter Perrin
 license LGPL
 */
@@ -138,7 +138,7 @@ license LGPL
 
 	context.Nymph = {
 		// The current version of Nymph.
-		version: "1.4.1",
+		version: "1.4.2",
 
 		// === Class Variables ===
 		restURL: null,
@@ -378,6 +378,23 @@ license LGPL
 					url: that.restURL,
 					dataType: 'json',
 					data: {'action': 'method', 'data': JSON.stringify({'entity': entity, 'method': method, 'params': params})},
+					success: function(data) {
+						resolve(data);
+					},
+					error: function(errObj){
+						reject(errObj);
+					}
+				});
+			});
+		},
+		serverCallStatic: function(className, method, params) {
+			var that = this;
+			return new Promise(function(resolve, reject){
+				postputdelAjax({
+					type: 'POST',
+					url: that.restURL,
+					dataType: 'json',
+					data: {'action': 'method', 'data': JSON.stringify({'class': className, 'static': true, 'method': method, 'params': params})},
 					success: function(data) {
 						resolve(data);
 					},

@@ -1,5 +1,5 @@
 /*
-Nymph-PubSub 1.4.1 nymph.io
+Nymph-PubSub 1.4.2 nymph.io
 (C) 2014 Hunter Perrin
 license LGPL
 */
