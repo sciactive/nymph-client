@@ -1,6 +1,6 @@
 /*
-Nymph 1.4.2 nymph.io
-(C) 2014 Hunter Perrin
+Nymph 1.4.3 nymph.io
+(C) 2014-2015 Hunter Perrin
 license LGPL
 */
 /* global define */
@@ -92,11 +92,8 @@ license LGPL
 			}
 			return url;
 		},
-		getAjax = function(opt){
-			var request = new XMLHttpRequest();
-			request.open('GET', makeUrl(opt.url, opt.data), true);
-
-			request.onreadystatechange = function() {
+		onReadyStateChange = function(opt){
+			return function(){
 				if (this.readyState === 4){
 					if (this.status >= 200 && this.status < 400){
 						if (opt.dataType === "json") {
@@ -105,10 +102,29 @@ license LGPL
 							opt.success(this.responseText);
 						}
 					} else {
-						opt.error({status: this.status, textStatus: this.responseText});
+						try {
+							var errObj = JSON.parse(this.responseText);
+						} catch (e) {
+							if (!(e instanceof SyntaxError)) {
+								throw e;
+							}
+						}
+						if (typeof errObj !== "object") {
+							errObj = {
+								textStatus: this.responseText
+							};
+						}
+						errObj.status = this.status;
+						opt.error(errObj);
 					}
 				}
 			};
+		},
+		getAjax = function(opt){
+			var request = new XMLHttpRequest();
+			request.open('GET', makeUrl(opt.url, opt.data), true);
+
+			request.onreadystatechange = onReadyStateChange(opt);
 
 			request.send();
 			request = null;
@@ -117,19 +133,7 @@ license LGPL
 			var request = new XMLHttpRequest();
 			request.open(opt.type, opt.url, true);
 
-			request.onreadystatechange = function() {
-				if (this.readyState === 4){
-					if (this.status >= 200 && this.status < 400){
-						if (opt.dataType === "json") {
-							opt.success(JSON.parse(this.responseText));
-						} else {
-							opt.success(this.responseText);
-						}
-					} else {
-						opt.error({status: this.status, textStatus: this.responseText});
-					}
-				}
-			};
+			request.onreadystatechange = onReadyStateChange(opt);
 
 			request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
 			request.send(makeUrl('', opt.data, true));
@@ -138,7 +142,7 @@ license LGPL
 
 	context.Nymph = {
 		// The current version of Nymph.
-		version: "1.4.2",
+		version: "1.4.3",
 
 		// === Class Variables ===
 		restURL: null,

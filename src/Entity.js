@@ -1,6 +1,6 @@
 /*
-Nymph Entity 1.4.2 nymph.io
-(C) 2014 Hunter Perrin
+Nymph Entity 1.4.3 nymph.io
+(C) 2014-2015 Hunter Perrin
 license LGPL
 */
 /* global define */
