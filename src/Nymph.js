@@ -1,22 +1,25 @@
 /*
-Nymph 1.4.3 nymph.io
+Nymph 1.5.0 nymph.io
 (C) 2014-2015 Hunter Perrin
 license LGPL
 */
 /* global define */
 /* global Promise */
 /* global NymphOptions */
-// Uses AMD or browser globals.
-(function(factory){
+// Uses AMD, CommonJS, or browser globals.
+(function (root, factory) {
   'use strict';
   if (typeof define === 'function' && define.amd) {
-    // AMD. Register as a module.
-    define('Nymph', ['NymphEntity', 'NymphOptions', 'Promise'], factory);
+      // AMD. Register as a module.
+      define('Nymph', ['NymphOptions', 'Promise'], factory);
+  } else if (typeof exports === 'object' && typeof module !== 'undefined') {
+      // CommonJS
+      module.exports = factory(require('NymphOptions'), require('promise'));
   } else {
-    // Browser globals
-    factory(NymphOptions, Promise, window);
+      // Browser globals
+      factory(root.NymphOptions, root.Promise, root);
   }
-}(function(NymphOptions, Promise, context){
+}(typeof window !== "undefined" ? window : this, function(NymphOptions, Promise, context){
   'use strict';
   if (typeof context === "undefined") {
     context = {};
@@ -27,8 +30,10 @@ license LGPL
     getEntityClass = function(){
       if (typeof context.Entity !== "undefined") {
         return context.Entity;
-      } else if (require) {
+      } else if (typeof define === 'function' && define.amd) {
         return require('NymphEntity');
+      } else if (requrie) {
+        return require('Entity');
       } else {
         return null;
       }
@@ -142,7 +147,7 @@ license LGPL
 
   context.Nymph = {
     // The current version of Nymph.
-    version: "1.4.3",
+    version: "1.5.0",
 
     // === Class Variables ===
     restURL: null,

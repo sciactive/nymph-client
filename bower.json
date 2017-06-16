@@ -1,10 +1,10 @@
 {
 	"name": "nymph-client",
 	"description": "Powerful object data storage and querying for collaborative web apps.",
-	"version": "1.4.3",
+	"version": "1.5.0",
 	"homepage": "http://nymph.io/",
 	"authors": [
-		"Hunter Perrin <hunter@sciactive.com>"
+		"Hunter Perrin <hperrin@gmail.com>"
 	],
 	"main": "src/Nymph.js",
 	"moduleType": [
@@ -20,7 +20,7 @@
 		"object relational mapper",
 		"object relational mapping"
 	],
-	"license": "LGPL",
+	"license": "Apache-2.0",
 	"ignore": [
 		"**/.*",
 		"bower_components"

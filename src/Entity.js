@@ -1,22 +1,25 @@
 /*
-Nymph Entity 1.4.3 nymph.io
+Nymph Entity 1.5.0 nymph.io
 (C) 2014-2015 Hunter Perrin
 license LGPL
 */
 /* global define */
 /* global Promise */
 /* global Nymph */
-// Uses AMD or browser globals.
-(function(factory){
+// Uses AMD, CommonJS, or browser globals.
+(function(root, factory){
   'use strict';
   if (typeof define === 'function' && define.amd) {
     // AMD. Register as a module.
     define('NymphEntity', ['Nymph', 'Promise'], factory);
+  } else if (typeof exports === 'object' && typeof module !== 'undefined') {
+      // CommonJS
+      module.exports = factory(require('Nymph'), require('promise'));
   } else {
     // Browser globals
-    factory(Nymph, Promise, window);
+    factory(root.Nymph, root.Promise, root);
   }
-}(function(Nymph, Promise, context){
+}(typeof window !== "undefined" ? window : this, function(Nymph, Promise, context){
   'use strict';
   if (typeof context === "undefined") {
     context = {};

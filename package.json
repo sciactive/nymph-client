@@ -1,0 +1,36 @@
+{
+  "name": "nymph-client",
+  "version": "1.5.0",
+  "description": "Powerful object data storage and querying for collaborative web apps.",
+  "main": "src/Nymph.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sciactive/nymph-client.git"
+  },
+  "keywords": [
+    "orm",
+    "mysql",
+    "postgres",
+    "postgresql",
+    "object",
+    "database",
+    "object",
+    "data",
+    "store",
+    "object",
+    "relational",
+    "mapper",
+    "object",
+    "relational",
+    "mapping"
+  ],
+  "author": "Hunter Perrin <hperrin@gmail.com>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/sciactive/nymph-client/issues"
+  },
+  "homepage": "https://github.com/sciactive/nymph-client#readme"
+}

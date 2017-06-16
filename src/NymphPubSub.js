@@ -1,5 +1,5 @@
 /*
-Nymph PubSub 1.4.3 nymph.io
+Nymph PubSub 1.5.0 nymph.io
 (C) 2014-2015 Hunter Perrin
 license LGPL
 */
@@ -8,17 +8,20 @@ license LGPL
 /* global NymphOptions */
 /* global Entity */
 /* global WebSocket */
-// Uses AMD or browser globals.
-(function(factory){
+// Uses AMD, CommonJS, or browser globals.
+(function(root, factory){
   'use strict';
   if (typeof define === 'function' && define.amd) {
     // AMD. Register as a module.
     define('NymphPubSub', ['NymphEntity', 'Nymph', 'NymphOptions', 'WebSocket'], factory);
+  } else if (typeof exports === 'object' && typeof module !== 'undefined') {
+      // CommonJS
+      module.exports = factory(require('Entity'), require('Nymph'), require('NymphOptions'), require('WebSocket'));
   } else {
     // Browser globals
-    factory(Entity, Nymph, NymphOptions, WebSocket, window);
+    factory(root.Entity, root.Nymph, root.NymphOptions, root.WebSocket, root);
   }
-}(function(Entity, Nymph, NymphOptions, WebSocket, context){
+}(typeof window !== "undefined" ? window : this, function(Entity, Nymph, NymphOptions, WebSocket, context){
   'use strict';
   if (typeof WebSocket === "undefined") {
     return null;
