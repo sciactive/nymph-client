@@ -1,7 +1,7 @@
 /*
 Nymph PubSub 1.5.0 nymph.io
 (C) 2014-2015 Hunter Perrin
-license LGPL
+license Apache-2.0
 */
 /* global define */
 /* global Nymph */
