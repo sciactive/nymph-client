@@ -1,5 +1,5 @@
 /*
-Nymph 1.5.0 nymph.io
+Nymph 1.5.1 nymph.io
 (C) 2014-2015 Hunter Perrin
 license Apache-2.0
 */
@@ -147,7 +147,7 @@ license Apache-2.0
 
   context.Nymph = {
     // The current version of Nymph.
-    version: "1.5.0",
+    version: "1.5.1",
 
     // === Class Variables ===
     restURL: null,
