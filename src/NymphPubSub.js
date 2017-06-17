@@ -1,5 +1,5 @@
 /*
-Nymph PubSub 1.5.1 nymph.io
+Nymph PubSub 1.5.2 nymph.io
 (C) 2014-2015 Hunter Perrin
 license Apache-2.0
 */
