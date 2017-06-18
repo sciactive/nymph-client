@@ -1,5 +1,5 @@
 /*
-Nymph 1.5.3 nymph.io
+Nymph 1.5.4 nymph.io
 (C) 2014-2015 Hunter Perrin
 license Apache-2.0
 */
@@ -147,7 +147,7 @@ license Apache-2.0
 
   context.Nymph = {
     // The current version of Nymph.
-    version: "1.5.3",
+    version: "1.5.4",
 
     // === Class Variables ===
     restURL: null,
@@ -351,16 +351,16 @@ license Apache-2.0
       }
       var remove = [];
       for (var k in oldArr) {
-        if (oldArr.hasOwnProperty(k) && /^0$|^[1-9]\d*$/.test(k) && k <= 4294967294) { // This handles sparse arrays.
+        if (k <= 4294967294 && /^0$|^[1-9]\d*$/.test(k) && oldArr.hasOwnProperty(k)) { // This handles sparse arrays.
           k = Number(k);
           if (typeof idMap[oldArr[k].guid] === "undefined") {
             // It was deleted.
             remove.push(k);
-          } else if (newArr[idMap[oldArr[k].guid]].mdate > oldArr[k].mdate) {
+          } else if (newArr[idMap[oldArr[k].guid]].mdate !== oldArr[k].mdate) {
             // It was modified.
             oldArr[k].init(newArr[idMap[oldArr[k].guid]].toJSON());
             delete idMap[oldArr[k].guid];
-          } else if (newArr[idMap[oldArr[k].guid]].mdate === oldArr[k].mdate) {
+          } else {
             // Item wasn't modified.
             delete idMap[oldArr[k].guid];
           }
