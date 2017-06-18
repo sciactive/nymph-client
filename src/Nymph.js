@@ -1,5 +1,5 @@
 /*
-Nymph 1.5.2 nymph.io
+Nymph 1.5.3 nymph.io
 (C) 2014-2015 Hunter Perrin
 license Apache-2.0
 */
@@ -147,7 +147,7 @@ license Apache-2.0
 
   context.Nymph = {
     // The current version of Nymph.
-    version: "1.5.2",
+    version: "1.5.3",
 
     // === Class Variables ===
     restURL: null,
@@ -367,7 +367,11 @@ license Apache-2.0
         }
       }
       // Now we must remove the deleted ones.
-      remove.sort().reverse();
+      remove.sort(function(a, b){
+        if (a > b) return -1;
+        if (a < b) return 1;
+        return 0;
+      });
       for (var n = 0; n < remove.length; n++) {
         oldArr.splice(remove[n], 1);
       }
