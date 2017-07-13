@@ -16,16 +16,21 @@ if (typeof WebSocket === "undefined") {
 
 class PubSub {
 
-  // === Instance Properties ===
+  // === Constructor ===
 
-  connection = null;
-  pubsubURL = null;
-  rateLimit = null;
-  debouncers = {};
-  subscriptions = {
-    queries: {},
-    uids: {}
-  };
+  constructor() {
+
+    // === Instance Properties ===
+
+    this.connection = null;
+    this.pubsubURL = null;
+    this.rateLimit = null;
+    this.debouncers = {};
+    this.subscriptions = {
+      queries: {},
+      uids: {}
+    };
+  }
 
   // === Instance Methods ===
 
@@ -296,7 +301,7 @@ Entity.prototype.subscribe = function(resolve, reject, count) {
   if (!this.guid) {
     return false;
   }
-  const query = [{'class': this.class, 'limit': 1}, {type: '&', guid: this.guid}];
+  const query = [{'class': this.constructor.class, 'limit': 1}, {type: '&', guid: this.guid}];
   const jsonQuery = JSON.stringify(query);
 
   const newResolve = (args) => {

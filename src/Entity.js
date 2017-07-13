@@ -126,31 +126,26 @@ const sortObj = function(obj) { // adapted from http://am.aurlien.net/post/12214
 
 class Entity {
 
-  // === Static Properties ===
-
-  static etype = "entity";
-  // The name of the server class
-  static class = "Entity";
-
-  // === Instance Properties ===
-
-  guid = null;
-  cdate = null;
-  mdate = null;
-  tags = [];
-  info = {};
-  data = {};
-  isASleepingReference = false;
-  sleepingReference = false;
-  readyPromise = null;
-
   // === Constructor ===
 
   constructor(id) {
+
+    // === Instance Properties ===
+
+    this.guid = null;
+    this.cdate = null;
+    this.mdate = null;
+    this.tags = [];
+    this.info = {};
+    this.data = {};
+    this.isASleepingReference = false;
+    this.sleepingReference = false;
+    this.readyPromise = null;
+
     if (typeof id !== "undefined" && !isNaN(Number(id))) {
       this.guid = Number(id);
       this.isASleepingReference = true;
-      this.sleepingReference = ['nymph_entity_reference', this.guid, this.class];
+      this.sleepingReference = ['nymph_entity_reference', this.guid, this.constructor.class];
       this.ready();
     }
   }
@@ -315,7 +310,7 @@ class Entity {
         return false;
       }
     }
-    if (object.class !== this.class) {
+    if (object.constructor.class !== this.constructor.class) {
       return false;
     }
     //return eq(this, object, [], []);
@@ -368,7 +363,7 @@ class Entity {
       });
     }
     return new Promise((resolve, reject) => {
-      Nymph.getEntityData({"class": this.class} , {"type": "&", "guid": this.guid}).then((data) => {
+      Nymph.getEntityData({"class": this.constructor.class} , {"type": "&", "guid": this.guid}).then((data) => {
         resolve(this.init(data));
       }, (errObj) => {
         reject(errObj);
@@ -409,7 +404,7 @@ class Entity {
         obj.data[k] = getDataReference(this.data[k]);
       }
     }
-    obj.class = this.class;
+    obj.class = this.constructor.class;
     return obj;
   }
 
@@ -420,7 +415,7 @@ class Entity {
     if (this.guid === null) {
       return this;
     }
-    return ['nymph_entity_reference', this.guid, this.class];
+    return ['nymph_entity_reference', this.guid, this.constructor.class];
   }
 
   referenceSleep(reference) {
@@ -507,7 +502,13 @@ class Entity {
   }
 }
 
-Nymph.setEntityClass("Entity", Entity);
+// === Static Properties ===
+
+Entity.etype = "entity";
+// The name of the server class
+Entity.class = "Entity";
+
+Nymph.setEntityClass(Entity.class, Entity);
 
 class EntityIsSleepingReferenceError extends Error {
   constructor(message) {

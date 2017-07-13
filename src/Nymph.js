@@ -126,16 +126,14 @@ const postputdelAjax = function(opt) {
 
 class Nymph {
 
-  // === Static Properties ===
+  // === Constructor ===
 
-  // The current version of Nymph.
-  static version = "1.6.0";
+  constructor() {
 
-  static entityClasses = {};
+    // === Instance Properties ===
 
-  // === Instance Properties ===
-
-  restURL = null;
+    this.restURL = null;
+  }
 
   // === Static Methods ===
 
@@ -171,7 +169,7 @@ class Nymph {
   }
 
   getEntityClass(className) {
-    Nymph.getEntityClass(className);
+    return Nymph.getEntityClass(className);
   }
 
   newUID(name) {
@@ -325,12 +323,12 @@ class Nymph {
     if (plural) {
       for (let i = 0; i < entity.length; i++) {
         cur = entity[i].toJSON();
-        cur.etype = entity[i].etype;
+        cur.etype = entity[i].constructor.etype;
         entity[i] = cur;
       }
     } else {
       cur = entity.toJSON();
-      cur.etype = entity.etype;
+      cur.etype = entity.constructor.etype;
       entity = cur;
     }
     return new Promise((resolve, reject) => {
@@ -529,6 +527,12 @@ class Nymph {
     return array;
   }
 }
+
+// === Static Properties ===
+
+// The current version of Nymph.
+Nymph.version = "1.6.0";
+Nymph.entityClasses = {};
 
 class NymphClassNotAvailableError extends Error {
   constructor(message) {
