@@ -6,7 +6,7 @@
 	"authors": [
 		"Hunter Perrin <hperrin@gmail.com>"
 	],
-	"main": "src/Nymph.js",
+	"main": "lib/Nymph.js",
 	"moduleType": [
 		"amd"
 	],

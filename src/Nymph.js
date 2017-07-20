@@ -238,15 +238,41 @@ class Nymph {
     });
   }
 
-  saveEntity(entity) {
+  saveEntity(entity, plural) {
+    let method;
+    if (plural) {
+      entity.forEach((cur) => {
+        if (!method) {
+          method = cur.guid === null ? 'POST' : 'PUT';
+        } else if ((method === 'POST' && cur.guid !== null) ||
+            (method === 'PUT' && cur.guid === null)
+          ) {
+          throw new NymphInvalidRequestError("Due to REST restriction, you can only create new entities or update existing entities, not both at the same time.");
+        }
+      });
+      if (!method) {
+        method = 'POST';
+      }
+    } else {
+      method = entity.guid === null ? 'POST' : 'PUT';
+    }
     return new Promise((resolve, reject) => {
       postputdelAjax({
-        type: entity.guid === null ? 'POST' : 'PUT',
+        type: method,
         url: this.restURL,
         dataType: 'json',
-        data: {'action': 'entity', 'data': JSON.stringify(entity)},
+        data: {'action': plural ? 'entities' : 'entity', 'data': JSON.stringify(entity)},
         success: (data) => {
-          if (typeof data.guid !== "undefined" && data.guid > 0) {
+          if (plural && entity.length === data.length) {
+            for (let i = 0; i < data.length; i++) {
+              if (typeof data[i].guid !== "undefined" && data[i].guid > 0 &&
+                  (entity[i].guid === null || entity[i].guid === data[i].guid)
+                ) {
+                entity[i].init(data[i]);
+              }
+            }
+            resolve(entity);
+          } else if (typeof data.guid !== "undefined" && data.guid > 0) {
             resolve(entity.init(data));
           } else {
             reject({textStatus: "Server error"});
@@ -257,6 +283,10 @@ class Nymph {
         }
       });
     });
+  }
+
+  saveEntities(entities) {
+    return this.saveEntity(entities, true);
   }
 
   getEntity(options, ...selectors) {
@@ -534,12 +564,19 @@ class Nymph {
 Nymph.version = "1.6.0";
 Nymph.entityClasses = {};
 
+// === Error Classes ===
+
 class NymphClassNotAvailableError extends Error {
   constructor(message) {
     super(message);
     this.name = 'NymphClassNotAvailableError';
-    this.message = message;
-    this.stack = (new Error()).stack;
+  }
+}
+
+class NymphInvalidRequestError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'NymphInvalidRequestError';
   }
 }
 
@@ -548,5 +585,5 @@ if (window !== undefined && window.NymphOptions !== undefined) {
   nymph.init(window.NymphOptions);
 }
 
-export {nymph as Nymph, NymphClassNotAvailableError};
+export {nymph as Nymph, NymphClassNotAvailableError, NymphInvalidRequestError};
 export default nymph;

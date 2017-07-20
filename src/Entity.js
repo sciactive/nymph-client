@@ -510,12 +510,12 @@ Entity.class = "Entity";
 
 Nymph.setEntityClass(Entity.class, Entity);
 
+// === Error Classes ===
+
 class EntityIsSleepingReferenceError extends Error {
   constructor(message) {
     super(message);
     this.name = 'EntityIsSleepingReferenceError';
-    this.message = message;
-    this.stack = (new Error()).stack;
   }
 }
 
