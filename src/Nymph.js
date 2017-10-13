@@ -581,7 +581,7 @@ class NymphInvalidRequestError extends Error {
 }
 
 let nymph = new Nymph();
-if (window !== undefined && window.NymphOptions !== undefined) {
+if (typeof window !== 'undefined' && typeof window.NymphOptions !== 'undefined') {
   nymph.init(window.NymphOptions);
 }
 

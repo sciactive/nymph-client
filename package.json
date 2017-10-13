@@ -4,8 +4,11 @@
   "description": "Powerful object data storage and querying for collaborative web apps.",
   "main": "lib/Nymph.js",
   "scripts": {
-    "build": "babel -d lib/ src/",
-    "watch": "babel --watch -d lib/ src/",
+    "build": "npm run build-umd && npm run build-cjs",
+    "build-umd": "BABEL_ENV=umd babel -d lib/ src/",
+    "build-cjs": "BABEL_ENV=cjs babel -d lib-cjs/ src/",
+    "watch-umd": "BABEL_ENV=umd babel --watch -d lib/ src/",
+    "watch-cjs": "BABEL_ENV=cjs babel --watch -d lib-cjs/ src/",
     "prepublish": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -37,8 +40,9 @@
   },
   "homepage": "https://github.com/sciactive/nymph-client#readme",
   "devDependencies": {
-    "babel-cli": "^6.24.1",
+    "babel-cli": "^6.26.0",
     "babel-plugin-transform-builtin-extend": "^1.1.2",
+    "babel-plugin-transform-es2015-modules-commonjs": "^6.26.0",
     "babel-plugin-transform-es2015-modules-umd": "^6.24.1",
     "babel-preset-env": "^1.6.0",
     "babel-preset-stage-3": "^6.24.1",

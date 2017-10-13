@@ -1,4 +1,22 @@
 {
+  "env": {
+    "umd": {
+      "plugins": [
+        ["transform-es2015-modules-umd", {
+          "globals": {
+            "Entity": "NymphEntity",
+            "PubSub": "NymphPubSub"
+          },
+          "exactGlobals": true
+        }]
+      ]
+    },
+    "cjs": {
+      "plugins": [
+        ["transform-es2015-modules-commonjs"]
+      ]
+    }
+  },
   "presets": [
     "env",
     "stage-3"
@@ -6,13 +24,6 @@
   "plugins": [
     ["babel-plugin-transform-builtin-extend", {
         "globals": ["Error", "Array"]
-    }],
-    ["transform-es2015-modules-umd", {
-      "globals": {
-        "Entity": "NymphEntity",
-        "PubSub": "NymphPubSub"
-      },
-      "exactGlobals": true
     }]
   ]
 }

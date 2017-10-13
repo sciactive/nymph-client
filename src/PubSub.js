@@ -223,7 +223,7 @@ class PubSub {
 };
 
 let pubSub = new PubSub();
-if (window !== undefined && window.NymphOptions !== undefined) {
+if (typeof window !== 'undefined' && typeof window.NymphOptions !== 'undefined') {
   pubSub.init(window.NymphOptions);
 }
 
