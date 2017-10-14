@@ -1,5 +1,5 @@
 /*
-Nymph Entity 1.6.0 nymph.io
+Nymph Entity 1.6.1 nymph.io
 (C) 2014-2017 Hunter Perrin
 license Apache-2.0
 */

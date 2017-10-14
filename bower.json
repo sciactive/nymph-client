@@ -1,7 +1,7 @@
 {
 	"name": "nymph-client",
 	"description": "Powerful object data storage and querying for collaborative web apps.",
-	"version": "1.6.0",
+	"version": "1.6.1",
 	"homepage": "http://nymph.io/",
 	"authors": [
 		"Hunter Perrin <hperrin@gmail.com>"
