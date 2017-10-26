@@ -50,7 +50,7 @@ myTodo.save().then(() => {
 
 // ...
 
-let subscription = Nymph.getEntities({"class": 'Todo'}, {"type": '&', "!tag": 'archived'}).subscribe((newTodos) => {
+let subscription = Nymph.getEntities({"class": Todo.class}, {"type": '&', "!tag": 'archived'}).subscribe((newTodos) => {
   if (newTodos !== undefined) {
     var todos = this.get('todos');
     Nymph.updateArray(todos, newTodos);
