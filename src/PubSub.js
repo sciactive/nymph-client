@@ -1,5 +1,5 @@
 /*
-Nymph PubSub 1.6.1 nymph.io
+Nymph PubSub 2.2.0 nymph.io
 (C) 2014-2017 Hunter Perrin
 license Apache-2.0
 */
@@ -46,72 +46,122 @@ class PubSub {
   }
 
   connect() {
-    this.connection = new WebSocket(this.pubsubURL);
-    this.connection.onopen = () => {
-      if (typeof console !== "undefined") {
-        console.log("Nymph-PubSub connection established!");
-      }
-    };
+    let timedAttemptConnect = () => {
+      // Attempt to connect, wait 5 seconds, then check and attempt again if unsuccessful.
+      setTimeout(() => {
+        if (this.connection.readyState !== WebSocket.OPEN) {
+          this.connection.close();
+          timedAttemptConnect();
+        }
+      }, 5000);
 
-    this.connection.onmessage = (e) => {
-      let func, data;
-      if (!this.rateLimit || typeof this.debouncers[e.data] === "undefined") {
-        func = () => {
-          data = JSON.parse(e.data);
-          if (typeof data.query !== "undefined" && typeof this.subscriptions.queries[data.query] !== "undefined") {
-            if (typeof data.count !== "undefined") {
-              for (let i1 = 0; typeof this.subscriptions.queries[data.query] !== "undefined" && i1 < this.subscriptions.queries[data.query].length; i1++) {
-                if (typeof this.subscriptions.queries[data.query][i1][2] !== "undefined") {
-                  this.subscriptions.queries[data.query][i1][2](data.count);
-                }
-              }
-            } else {
-              Nymph.getEntities.apply(Nymph, JSON.parse(data.query)).then((...args) => {
-                for (let i = 0; typeof this.subscriptions.queries[data.query] !== "undefined" && i < this.subscriptions.queries[data.query].length; i++) {
-                  this.subscriptions.queries[data.query][i][0].apply(null, args);
-                }
-              }, (...args) => {
-                for (let i = 0; typeof this.subscriptions.queries[data.query] !== "undefined" && i < this.subscriptions.queries[data.query].length; i++) {
-                  this.subscriptions.queries[data.query][i][1].apply(null, args);
-                }
-              });
+      this.connection = new WebSocket(this.pubsubURL);
+
+      this.connection.onopen = () => {
+        if (typeof console !== "undefined") {
+          console.log("Nymph-PubSub connection established!");
+        }
+
+        for (let query in this.subscriptions.queries) {
+          if (!this.subscriptions.queries.hasOwnProperty(query)) {
+            continue;
+          }
+          let count = false;
+          for (let callbacks = 0; callbacks < this.subscriptions.queries[query].length; callbacks++) {
+            if (typeof this.subscriptions.queries[query][callbacks][2] !== "undefined") {
+              count = true;
+              break;
             }
           }
-          if (typeof data.uid !== "undefined" && typeof this.subscriptions.uids[data.uid] !== "undefined") {
-            if (typeof data.count !== "undefined") {
-              for (let i2 = 0; typeof this.subscriptions.uids[data.uid] !== "undefined" && i2 < this.subscriptions.uids[data.uid].length; i2++) {
-                if (typeof this.subscriptions.uids[data.uid][i2][2] !== "undefined") {
-                  this.subscriptions.uids[data.uid][i2][2](data.count);
-                }
-              }
-            } else {
-              Nymph.getUID.call(Nymph, data.uid).then((...args) => {
-                for (let i = 0; typeof this.subscriptions.uids[data.uid] !== "undefined" && i < this.subscriptions.uids[data.uid].length; i++) {
-                  this.subscriptions.uids[data.uid][i][0].apply(null, args);
-                }
-              }, (...args) => {
-                for (let i = 0; typeof this.subscriptions.uids[data.uid] !== "undefined" && i < this.subscriptions.uids[data.uid].length; i++) {
-                  this.subscriptions.uids[data.uid][i][1].apply(null, args);
-                }
-              });
+          this._subscribeQuery(query, count);
+        }
+
+        for (let name in this.subscriptions.uids) {
+          if (!this.subscriptions.uids.hasOwnProperty(name)) {
+            continue;
+          }
+          let count = false;
+          for (let callbacks = 0; callbacks < this.subscriptions.uids[name].length; callbacks++) {
+            if (typeof this.subscriptions.uids[name][callbacks][2] !== "undefined") {
+              count = true;
+              break;
             }
           }
-          if (this.rateLimit) {
-            delete this.debouncers[e.data];
+          this._subscribeUID(name, count);
+        }
+
+        this.connection.onclose = (e) => {
+          if (typeof console !== "undefined") {
+            console.log("Nymph-PubSub connection closed: ", e);
+          }
+          if (e.code !== 1000) {
+            this.connection.close();
+            timedAttemptConnect();
           }
         };
-      }
-      /* jshint -W038 */
-      if (!this.rateLimit) {
-        func();
-        return;
-      }
-      if (typeof this.debouncers[e.data] === "undefined") {
-        this.debouncers[e.data] = this.debounce(func);
-      }
-      /* jshint +W038 */
-      this.debouncers[e.data]();
+      };
+
+      this.connection.onmessage = (e) => {
+        let func, data;
+        if (!this.rateLimit || typeof this.debouncers[e.data] === "undefined") {
+          func = () => {
+            data = JSON.parse(e.data);
+            if (typeof data.query !== "undefined" && typeof this.subscriptions.queries[data.query] !== "undefined") {
+              if (typeof data.count !== "undefined") {
+                for (let i1 = 0; typeof this.subscriptions.queries[data.query] !== "undefined" && i1 < this.subscriptions.queries[data.query].length; i1++) {
+                  if (typeof this.subscriptions.queries[data.query][i1][2] !== "undefined") {
+                    this.subscriptions.queries[data.query][i1][2](data.count);
+                  }
+                }
+              } else {
+                Nymph.getEntities.apply(Nymph, JSON.parse(data.query)).then((...args) => {
+                  for (let i = 0; typeof this.subscriptions.queries[data.query] !== "undefined" && i < this.subscriptions.queries[data.query].length; i++) {
+                    this.subscriptions.queries[data.query][i][0].apply(null, args);
+                  }
+                }, (...args) => {
+                  for (let i = 0; typeof this.subscriptions.queries[data.query] !== "undefined" && i < this.subscriptions.queries[data.query].length; i++) {
+                    this.subscriptions.queries[data.query][i][1].apply(null, args);
+                  }
+                });
+              }
+            }
+            if (typeof data.uid !== "undefined" && typeof this.subscriptions.uids[data.uid] !== "undefined") {
+              if (typeof data.count !== "undefined") {
+                for (let i2 = 0; typeof this.subscriptions.uids[data.uid] !== "undefined" && i2 < this.subscriptions.uids[data.uid].length; i2++) {
+                  if (typeof this.subscriptions.uids[data.uid][i2][2] !== "undefined") {
+                    this.subscriptions.uids[data.uid][i2][2](data.count);
+                  }
+                }
+              } else {
+                Nymph.getUID.call(Nymph, data.uid).then((...args) => {
+                  for (let i = 0; typeof this.subscriptions.uids[data.uid] !== "undefined" && i < this.subscriptions.uids[data.uid].length; i++) {
+                    this.subscriptions.uids[data.uid][i][0].apply(null, args);
+                  }
+                }, (...args) => {
+                  for (let i = 0; typeof this.subscriptions.uids[data.uid] !== "undefined" && i < this.subscriptions.uids[data.uid].length; i++) {
+                    this.subscriptions.uids[data.uid][i][1].apply(null, args);
+                  }
+                });
+              }
+            }
+            if (this.rateLimit) {
+              delete this.debouncers[e.data];
+            }
+          };
+        }
+        /* jshint -W038 */
+        if (!this.rateLimit) {
+          func();
+          return;
+        }
+        if (typeof this.debouncers[e.data] === "undefined") {
+          this.debouncers[e.data] = this.debounce(func);
+        }
+        /* jshint +W038 */
+        this.debouncers[e.data]();
+      };
     };
+    timedAttemptConnect();
   }
 
   debounce(func, immediate) {
@@ -134,93 +184,144 @@ class PubSub {
   }
 
   subscribeQuery(query, callbacks) {
-    const func = () => {
-      if (this.connection.readyState === 1) {
-        if (typeof this.subscriptions.queries[query] === "undefined") {
-          this.subscriptions.queries[query] = [];
-        }
-        this.connection.send(JSON.stringify({
-          "action": "subscribe",
-          "query": query,
-          "count": typeof callbacks[2] !== "undefined"
-        }));
-        this.subscriptions.queries[query].push(callbacks);
-        clearInterval(interval);
+    let isNewSubscription = false;
+    if (typeof this.subscriptions.queries[query] === "undefined") {
+      this.subscriptions.queries[query] = [];
+      isNewSubscription = true;
+    }
+    let isCountSubscribed = isNewSubscription || this._isCountSubscribedQuery(query);
+    this.subscriptions.queries[query].push(callbacks);
+    if (this.connection.readyState === WebSocket.OPEN) {
+      if (isNewSubscription) {
+        this._subscribeQuery(query, typeof callbacks[2] !== "undefined");
+      } else if (!isCountSubscribed && callbacks[2] !== "undefined") {
+        this._unsubscribeQuery(query);
+        this._subscribeQuery(query, true);
       }
-    };
-    const interval = setInterval(func, 100);
-    func();
-  }
-
-  unsubscribeQuery(query, callbacks) {
-    const func = () => {
-      if (this.connection.readyState === 1) {
-        if (typeof this.subscriptions.queries[query] === "undefined") {
-          return;
-        }
-        const idx = this.subscriptions.queries[query].indexOf(callbacks);
-        if (idx === -1) {
-          return;
-        }
-        this.subscriptions.queries[query].splice(idx, 1);
-        if (!this.subscriptions.queries[query].length) {
-          delete this.subscriptions.queries[query];
-        }
-        this.connection.send(JSON.stringify({
-          "action": "unsubscribe",
-          "query": query
-        }));
-        clearInterval(interval);
-      }
-    };
-    const interval = setInterval(func, 100);
-    func();
+    }
   }
 
   subscribeUID(name, callbacks) {
-    const func = () => {
-      if (this.connection.readyState === 1) {
-        if (typeof this.subscriptions.uids[name] === "undefined") {
-          this.subscriptions.uids[name] = [];
-        }
-        this.connection.send(JSON.stringify({
-          "action": "subscribe",
-          "uid": name,
-          "count": typeof callbacks[2] !== "undefined"
-        }));
-        this.subscriptions.uids[name].push(callbacks);
-        clearInterval(interval);
+    let isNewSubscription = false;
+    if (typeof this.subscriptions.uids[name] === "undefined") {
+      this.subscriptions.uids[name] = [];
+      isNewSubscription = true;
+    }
+    let isCountSubscribed = isNewSubscription || this._isCountSubscribedUID(name);
+    this.subscriptions.uids[name].push(callbacks);
+    if (this.connection.readyState === WebSocket.OPEN) {
+      if (isNewSubscription) {
+        this._subscribeUID(name, typeof callbacks[2] !== "undefined");
+      } else if (!isCountSubscribed && callbacks[2] !== "undefined") {
+        this._unsubscribeUID(name);
+        this._subscribeUID(name, true);
       }
-    };
-    const interval = setInterval(func, 100);
-    func();
+    }
+  }
+
+  _subscribeQuery(query, count) {
+    this.connection.send(JSON.stringify({
+      "action": "subscribe",
+      "query": query,
+      "count": count
+    }));
+  }
+
+  _subscribeUID(name, count) {
+    this.connection.send(JSON.stringify({
+      "action": "subscribe",
+      "uid": name,
+      "count": count
+    }));
+  }
+
+  _isCountSubscribedQuery(query) {
+    if (typeof this.subscriptions.queries[query] === "undefined") {
+      return false;
+    }
+    for (let callbacks = 0; callbacks < this.subscriptions.queries[query].length; callbacks++) {
+      if (typeof this.subscriptions.queries[query][callbacks][2] !== "undefined") {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  _isCountSubscribedUID(name) {
+    if (typeof this.subscriptions.uids[name] === "undefined") {
+      return false;
+    }
+    for (let callbacks = 0; callbacks < this.subscriptions.uids[name].length; callbacks++) {
+      if (typeof this.subscriptions.uids[name][callbacks][2] !== "undefined") {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  unsubscribeQuery(query, callbacks) {
+    if (typeof this.subscriptions.queries[query] === "undefined") {
+      return;
+    }
+    const idx = this.subscriptions.queries[query].indexOf(callbacks);
+    if (idx === -1) {
+      return;
+    }
+    this.subscriptions.queries[query].splice(idx, 1);
+    if (!this.subscriptions.queries[query].length) {
+      delete this.subscriptions.queries[query];
+      if (this.connection.readyState === WebSocket.OPEN) {
+        this._unsubscribeQuery(query);
+      }
+    }
   }
 
   unsubscribeUID(name, callbacks) {
-    const func = () => {
-      if (this.connection.readyState === 1) {
-        if (typeof this.subscriptions.uids[name] === "undefined") {
-          return;
-        }
-        const idx = this.subscriptions.uids[name].indexOf(callbacks);
-        if (idx === -1) {
-          return;
-        }
-        this.subscriptions.uids[name].splice(idx, 1);
-        if (!this.subscriptions.uids[name].length) {
-          delete this.subscriptions.uids[name];
-        }
-        this.connection.send(JSON.stringify({
-          "action": "unsubscribe",
-          "uid": name
-        }));
-        clearInterval(interval);
+    if (typeof this.subscriptions.uids[name] === "undefined") {
+      return;
+    }
+    const idx = this.subscriptions.uids[name].indexOf(callbacks);
+    if (idx === -1) {
+      return;
+    }
+    this.subscriptions.uids[name].splice(idx, 1);
+    if (!this.subscriptions.uids[name].length) {
+      delete this.subscriptions.uids[name];
+      if (this.connection.readyState === WebSocket.OPEN) {
+        this._unsubscribeUID(name);
       }
-    };
-    const interval = setInterval(func, 100);
-    func();
+      return;
+    }
+  }
+
+  _unsubscribeQuery(query) {
+    this.connection.send(JSON.stringify({
+      "action": "unsubscribe",
+      "query": query
+    }));
+  }
+
+  _unsubscribeUID(name) {
+    this.connection.send(JSON.stringify({
+      "action": "unsubscribe",
+      "uid": name
+    }));
   }
 };
+
+class PubSubSubscription {
+
+  // === Constructor ===
+
+  constructor(query, callbacks, unsubscribe) {
+
+    // === Instance Properties ===
+
+    this.query = query;
+    this.callbacks = callbacks;
+    this.unsubscribe = unsubscribe;
+  }
+}
 
 let pubSub = new PubSub();
 if (typeof window !== 'undefined' && typeof window.NymphOptions !== 'undefined') {
@@ -241,11 +342,9 @@ Nymph.getEntities = function(options, ...selectors) {
     promise.then(resolve, reject);
 
     pubSub.subscribeQuery(promise.query, callbacks);
-    return {
-      unsubscribe: () => {
-        pubSub.unsubscribeQuery(promise.query, callbacks);
-      }
-    };
+    return new PubSubSubscription(promise.query, callbacks, () => {
+      pubSub.unsubscribeQuery(promise.query, callbacks);
+    });
   };
   return promise;
 };
@@ -271,11 +370,9 @@ Nymph.getEntity = function(options, ...selectors) {
     promise.then(resolve, reject);
 
     pubSub.subscribeQuery(promise.query, callbacks);
-    return {
-      unsubscribe: () => {
-        pubSub.unsubscribeQuery(promise.query, callbacks);
-      }
-    };
+    return new PubSubSubscription(promise.query, callbacks, () => {
+      pubSub.unsubscribeQuery(promise.query, callbacks);
+    });
   };
   return promise;
 };
@@ -327,5 +424,5 @@ Entity.prototype.subscribe = function(resolve, reject, count) {
   };
 };
 
-export {pubSub as PubSub};
+export {pubSub as PubSub, PubSubSubscription};
 export default pubSub;

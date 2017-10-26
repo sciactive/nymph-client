@@ -1,5 +1,5 @@
 /*
-Nymph 1.6.1 nymph.io
+Nymph 2.2.0 nymph.io
 (C) 2014-2017 Hunter Perrin
 license Apache-2.0
 */
@@ -684,7 +684,7 @@ var Nymph = function () {
 // The current version of Nymph.
 
 
-Nymph.version = "1.6.1";
+Nymph.version = "2.2.0";
 Nymph.entityClasses = {};
 
 // === Error Classes ===

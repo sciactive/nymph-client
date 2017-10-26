@@ -12,7 +12,7 @@
   }
 })(this, function (exports, _Nymph) {
   /*
-  Nymph Entity 1.6.1 nymph.io
+  Nymph Entity 2.2.0 nymph.io
   (C) 2014-2017 Hunter Perrin
   license Apache-2.0
   */
@@ -233,7 +233,6 @@
       this.cdate = null;
       this.mdate = null;
       this.tags = [];
-      this.info = {};
       this.data = {};
       this.isASleepingReference = false;
       this.sleepingReference = false;
@@ -263,7 +262,6 @@
         this.cdate = jsonEntity.cdate;
         this.mdate = jsonEntity.mdate;
         this.tags = jsonEntity.tags;
-        this.info = jsonEntity.info;
         this.data = jsonEntity.data;
         for (var k in this.data) {
           if (this.data.hasOwnProperty(k)) {
