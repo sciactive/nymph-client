@@ -1,12 +1,12 @@
 {
   "name": "nymph-client",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "description": "Powerful object data storage and querying for collaborative web apps.",
   "main": "lib/Nymph.js",
   "scripts": {
     "build": "babel -d lib/ src/",
     "watch": "babel --watch -d lib/ src/",
-    "prepublish": "npm run build",
+    "prepare": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
