@@ -20,7 +20,7 @@ You can install Nymph Client with NPM.
 npm install --save nymph-client
 ```
 
-This repository is the JavaScript client for browsers. You can find UMD modules in the /lib-umd directory, and CommonJS modules in the /lib-cjs directory. There is also a **[Node.js client](https://github.com/sciactive/nymph-client-node)**. For more information, you can see the [main Nymph repository](https://github.com/sciactive/nymph).
+This repository is the JavaScript client for browsers. You can find UMD format modules in the /lib directory. There is also a **[Node.js client](https://github.com/sciactive/nymph-client-node)**. For more information, you can see the [main Nymph repository](https://github.com/sciactive/nymph).
 
 ## Setting up Nymph in a Browser
 
@@ -37,9 +37,9 @@ npm install --save nymph-client
     pubsubURL: 'wss://yournymphpubsubserver:8080',
     rateLimit: 100
   };
-  <script src="node_modules/nymph-client/lib-umd/Nymph.js"></script>
-  <script src="node_modules/nymph-client/lib-umd/Entity.js"></script>
-  <script src="node_modules/nymph-client/lib-umd/PubSub.js"></script>
+  <script src="node_modules/nymph-client/lib/Nymph.js"></script>
+  <script src="node_modules/nymph-client/lib/Entity.js"></script>
+  <script src="node_modules/nymph-client/lib/PubSub.js"></script>
   <script src="path/to/your/entity/js/Todo.js"></script>
 </head>
 ```
