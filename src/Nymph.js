@@ -145,10 +145,10 @@ class Nymph {
     if (Nymph.entityClasses.hasOwnProperty(className)) {
       return Nymph.entityClasses[className];
     }
-    if (window !== undefined && window[className] !== undefined) {
+    if (typeof window !== "undefined" && typeof window[className] !== "undefined") {
       return window[className];
     }
-    if (typeof define === 'function' && define.amd) {
+    if (typeof define === "function" && define.amd) {
       return require('Nymph'+className);
     }
     if (typeof require === "function") {
