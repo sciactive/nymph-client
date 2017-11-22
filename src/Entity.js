@@ -141,8 +141,8 @@ class Entity {
     this.sleepingReference = false;
     this.readyPromise = null;
 
-    if (typeof id !== "undefined" && !isNaN(Number(id))) {
-      this.guid = Number(id);
+    if (typeof id !== "undefined" && !isNaN(parseInt(id, 10))) {
+      this.guid = parseInt(id, 10);
       this.isASleepingReference = true;
       this.sleepingReference = ['nymph_entity_reference', this.guid, this.constructor.class];
       this.ready();
@@ -418,6 +418,7 @@ class Entity {
 
   referenceSleep(reference) {
     this.isASleepingReference = true;
+    this.guid = parseInt(reference[1], 10);
     this.sleepingReference = reference;
   }
 
