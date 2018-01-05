@@ -73,19 +73,42 @@ const makeUrl = function(url, data, noSep) {
   return url;
 };
 
+const filterPhpMessages = function(text) {
+  const phpMessages = /<br \/>\n(<b>[\w ]+<\/b>:.*?)<br \/>\n/gm;
+  if (text.match(phpMessages)) {
+    let match;
+    while ((match = phpMessages.exec(text)) !== null) {
+      console.log('PHP Message:', match[1].replace(/<\/?b>/g, ''));
+    }
+    text = text.replace(phpMessages, '');
+  }
+  return text;
+};
+
 const onReadyStateChange = function(opt) {
   return function() {
     if (this.readyState === 4) {
       if (this.status >= 200 && this.status < 400) {
+        const response = filterPhpMessages(this.responseText);
         if (opt.dataType === "json") {
-          opt.success(JSON.parse(this.responseText));
+          if (!response.length) {
+            throw new NymphInvalidResponseError("Server response was empty.");
+          }
+          try {
+            opt.success(JSON.parse(response));
+          } catch (e) {
+            if (!(e instanceof SyntaxError)) {
+              throw e;
+            }
+            throw new NymphInvalidResponseError("Server response was invalid.");
+          }
         } else {
-          opt.success(this.responseText);
+          opt.success(response);
         }
       } else {
         let errObj;
         try {
-          errObj = JSON.parse(this.responseText);
+          errObj = JSON.parse(filterPhpMessages(this.responseText));
         } catch (e) {
           if (!(e instanceof SyntaxError)) {
             throw e;
@@ -580,10 +603,17 @@ class NymphInvalidRequestError extends Error {
   }
 }
 
+class NymphInvalidResponseError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'NymphInvalidResponseError';
+  }
+}
+
 let nymph = new Nymph();
 if (typeof window !== 'undefined' && typeof window.NymphOptions !== 'undefined') {
   nymph.init(window.NymphOptions);
 }
 
-export {nymph as Nymph, NymphClassNotAvailableError, NymphInvalidRequestError};
+export {nymph as Nymph, NymphClassNotAvailableError, NymphInvalidRequestError, NymphInvalidResponseError};
 export default nymph;
