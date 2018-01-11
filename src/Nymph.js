@@ -1,6 +1,6 @@
 /*
-Nymph 2.2.0 nymph.io
-(C) 2014-2017 Hunter Perrin
+Nymph 3.0.3 nymph.io
+(C) 2014-2018 Hunter Perrin
 license Apache-2.0
 */
 /* global Promise */
@@ -583,8 +583,8 @@ class Nymph {
 
 // === Static Properties ===
 
-// The current version of Nymph.
-Nymph.version = "2.2.0";
+// The current version of Nymph Client.
+Nymph.version = "3.0.3";
 Nymph.entityClasses = {};
 
 // === Error Classes ===
