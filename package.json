@@ -1,6 +1,6 @@
 {
   "name": "nymph-client",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "description": "Powerful object data storage and querying for collaborative web apps.",
   "main": "lib/Nymph.js",
   "scripts": {
@@ -41,7 +41,6 @@
     "babel-plugin-transform-builtin-extend": "^1.1.2",
     "babel-plugin-transform-es2015-modules-umd": "^6.24.1",
     "babel-preset-env": "^1.6.1",
-    "babel-preset-stage-3": "^6.24.1",
-    "babel-watch": "^2.0.7"
+    "babel-preset-stage-3": "^6.24.1"
   }
 }
