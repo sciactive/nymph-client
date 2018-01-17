@@ -11,6 +11,10 @@ let sortProperty = null;
 let sortParent = null;
 let sortCaseSensitive = null;
 
+const isArray = (Array.isArray || function(arr) {
+  return Object.prototype.toString.call(arr) === '[object Array]';
+});
+
 const arraySortProperty = function(a, b) {
   let aprop, bprop,
     property = sortProperty,
@@ -353,7 +357,7 @@ class Nymph {
         dataType: 'json',
         data: {'action': 'entities', 'data': JSON.stringify([options, ...selectors])},
         success: (data) => {
-          resolve(map(data, this.initEntity));
+          resolve(map(data, this.initEntity.bind(this)));
         },
         error: (errObj) => {
           reject(errObj);
@@ -369,6 +373,36 @@ class Nymph {
     }
     const entity = new (entityClass)();
     return entity.init(entityJSON);
+  }
+
+  initEntitiesFromData(item) {
+    if (isArray(item)) {
+      // Recurse into lower arrays.
+      return map(item, this.initEntitiesFromData.bind(this));
+    } else if (
+        item instanceof Object
+        && !(item instanceof this.getEntityClass('Entity'))
+      ) {
+      if (
+          item.hasOwnProperty('class')
+          && Nymph.getEntityClass(item.class)
+          && item.hasOwnProperty('guid')
+          && item.hasOwnProperty('cdate')
+          && item.hasOwnProperty('mdate')
+          && item.hasOwnProperty('tags')
+          && item.hasOwnProperty('data')
+        ) {
+        return this.initEntity(item);
+      } else {
+        for (let k in item) {
+          if (item.hasOwnProperty(k)) {
+            item[k] = this.initEntitiesFromData(item[k]);
+          }
+        }
+      }
+    }
+    // Not an entity or array, just return it.
+    return item;
   }
 
   deleteEntity(entity, plural) {
@@ -455,7 +489,7 @@ class Nymph {
         dataType: 'json',
         data: {'action': 'method', 'data': JSON.stringify({'entity': entity, 'method': method, 'params': params})},
         success: (data) => {
-          resolve(data);
+          resolve(this.initEntitiesFromData(data));
         },
         error: (errObj) => {
           reject(errObj);
@@ -472,7 +506,7 @@ class Nymph {
         dataType: 'json',
         data: {'action': 'method', 'data': JSON.stringify({'class': className, 'static': true, 'method': method, 'params': params})},
         success: (data) => {
-          resolve(data);
+          resolve(this.initEntitiesFromData(data));
         },
         error: (errObj) => {
           reject(errObj);

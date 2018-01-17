@@ -78,6 +78,7 @@ const getDataReference = function(item) {
         newObj[k] = getDataReference(item[k]);
       }
     }
+    return newObj;
   }
   // Not an entity or array, just return it.
   return item;
@@ -419,7 +420,7 @@ class Entity {
   referenceSleep(reference) {
     this.isASleepingReference = true;
     this.guid = parseInt(reference[1], 10);
-    this.sleepingReference = reference;
+    this.sleepingReference = [...reference];
   }
 
   ready(success, error) {
@@ -463,34 +464,42 @@ class Entity {
     return this.readyPromise;
   }
 
-  readyAll(success, error) {
+  readyAll(success, error, level) {
     return new Promise((resolve, reject) => {
       this.ready(() => {
-        const promises = [];
-        for (let k in this.data) {
-          if (this.data.hasOwnProperty(k)) {
-            if (this.data[k] instanceof Entity) {
-              promises.push(this.data[k].readyAll());
-            } else if (isArray(this.data[k])) {
-              for (let i = 0; i < this.data[k].length; i++) {
-                if (this.data[k][i] instanceof Entity) {
-                  promises.push(this.data[k][i].readyAll());
+        let newLevel;
+        if (level !== undefined) {
+          newLevel = level - 1;
+        }
+        if (newLevel === undefined || newLevel >= 0) {
+          const promises = [];
+          for (let k in this.data) {
+            if (this.data.hasOwnProperty(k)) {
+              if (this.data[k] instanceof Entity) {
+                promises.push(this.data[k].readyAll(undefined, undefined, newLevel));
+              } else if (isArray(this.data[k])) {
+                for (let i = 0; i < this.data[k].length; i++) {
+                  if (this.data[k][i] instanceof Entity) {
+                    promises.push(this.data[k][i].readyAll(undefined, undefined, newLevel));
+                  }
                 }
               }
             }
           }
-        }
-        Promise.all(promises).then(() => {
+          Promise.all(promises).then(() => {
+            resolve(this);
+            if (typeof success === "function") {
+              success(this);
+            }
+          }, (errObj) => {
+            reject(errObj);
+            if (typeof error === "function") {
+              error(errObj);
+            }
+          });
+        } else {
           resolve(this);
-          if (typeof success === "function") {
-            success(this);
-          }
-        }, (errObj) => {
-          reject(errObj);
-          if (typeof error === "function") {
-            error(errObj);
-          }
-        });
+        }
       }, (errObj) => {
         reject(errObj);
         if (typeof error === "function") {
