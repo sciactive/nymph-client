@@ -1,6 +1,6 @@
 # Nymph Client - collaborative app data
 
-[![Latest Stable Version](https://img.shields.io/npm/v/nymph-client.svg?style=flat)](https://www.npmjs.com/package/nymph-client) [![License](https://img.shields.io/npm/l/nymph-client.svg?style=flat)](https://www.npmjs.com/package/nymph-client) [![Open Issues](https://img.shields.io/github/issues/sciactive/nymph-client.svg?style=flat)](https://github.com/sciactive/nymph-client/issues)
+[![Latest Stable Version](https://img.shields.io/npm/v/nymph-client.svg)](https://www.npmjs.com/package/nymph-client) [![Open Issues](https://img.shields.io/github/issues/sciactive/nymph-client.svg)](https://github.com/sciactive/nymph-client/issues) [![License](https://img.shields.io/github/license/sciactive/nymph-client.svg)]()
 
 Nymph is an object data store that is easy to use in JavaScript and PHP.
 
