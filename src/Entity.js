@@ -166,22 +166,24 @@ class Entity {
 
   // === Instance Methods ===
 
-  init(jsonEntity) {
-    if (typeof jsonEntity === "undefined" || jsonEntity === null) {
+  init(entityData) {
+    if (typeof entityData === "undefined" || entityData === null) {
       return this;
     }
 
     this.isASleepingReference = false;
     this.sleepingReference = false;
 
-    this.guid = jsonEntity.guid;
-    this.cdate = jsonEntity.cdate;
-    this.mdate = jsonEntity.mdate;
-    this.tags = jsonEntity.tags;
-    this.data = jsonEntity.data;
-    for (let k in this.data) {
-      if (this.data.hasOwnProperty(k)) {
-        this.data[k] = getSleepingReference(this.data[k]);
+    this.guid = entityData.guid;
+    this.cdate = entityData.cdate;
+    this.mdate = entityData.mdate;
+    this.tags = entityData.tags;
+    this.data = entityData.data;
+    if (!(entityData instanceof Entity)) {
+      for (let k in this.data) {
+        if (this.data.hasOwnProperty(k)) {
+          this.data[k] = getSleepingReference(this.data[k]);
+        }
       }
     }
 
