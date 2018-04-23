@@ -119,7 +119,7 @@ const sortObj = function (obj) { // adapted from http://am.aurlien.net/post/1221
   return tempObj;
 };
 
-export default class Entity {
+export class Entity {
   // === Constructor ===
 
   constructor (id) {
@@ -520,3 +520,5 @@ export class EntityIsSleepingReferenceError extends Error {
     this.name = 'EntityIsSleepingReferenceError';
   }
 }
+
+export default Entity;

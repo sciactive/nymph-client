@@ -8,7 +8,7 @@ if (typeof WebSocket === 'undefined') {
   throw new Error('Nymph-PubSub requires WebSocket!');
 }
 
-export default class PubSub {
+export class PubSub {
   // === Static Methods ===
 
   static init (NymphOptions) {
@@ -404,6 +404,8 @@ export class PubSubSubscription {
   }
 }
 
-if (typeof window !== 'undefined' && typeof window.NymphOptions !== 'undefined') {
+if (typeof window !== 'undefined' && typeof window.NymphOptions !== 'undefined' && typeof window.NymphOptions.pubsubURL !== 'undefined') {
   PubSub.init(window.NymphOptions);
 }
+
+export default PubSub;

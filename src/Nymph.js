@@ -160,7 +160,7 @@ const postputdelAjax = function (opt) {
   request = null;
 };
 
-export default class Nymph {
+export class Nymph {
   // === Static Methods ===
 
   static setEntityClass (className, entityClass) {
@@ -633,3 +633,5 @@ export class NymphInvalidResponseError extends Error {
 if (typeof window !== 'undefined' && typeof window.NymphOptions !== 'undefined') {
   Nymph.init(window.NymphOptions);
 }
+
+export default Nymph;

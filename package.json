@@ -2,8 +2,8 @@
   "name": "nymph-client",
   "version": "4.0.0-beta.1",
   "description": "Powerful object data storage and querying for collaborative web apps.",
-  "main": "lib/index.js",
-  "browser": "src/index.js",
+  "main": "lib/nymph-client.js",
+  "browser": "src/nymph-client.js",
   "directories": {
     "lib": "lib"
   },
