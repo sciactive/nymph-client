@@ -1,20 +1,19 @@
 /*
-Nymph Entity 3.0.4 nymph.io
+Nymph Entity 3.0.5 nymph.io
 (C) 2014-2018 Hunter Perrin
 license Apache-2.0
 */
-/* global Promise */
 'use strict';
 
-import {Nymph, NymphClassNotAvailableError} from "Nymph";
+import {Nymph, NymphClassNotAvailableError} from 'Nymph';
 
-const sleepErr = "This entity is in a sleeping reference state. You must use .ready().then() to wake it.";
+const sleepErr = 'This entity is in a sleeping reference state. You must use .ready().then() to wake it.';
 
-const isArray = (Array.isArray || function(arr) {
+const isArray = (Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) === '[object Array]';
 });
 
-const indexOf = function(array, item) {
+const indexOf = function (array, item) {
   for (let i = 0; i < array.length; i++) {
     if (array[i] === item) {
       return i;
@@ -23,7 +22,7 @@ const indexOf = function(array, item) {
   return -1;
 };
 
-const map = function(arr, fn) {
+const map = function (arr, fn) {
   const results = [];
   for (let i = 0; i < arr.length; i++) {
     results.push(fn(arr[i], i));
@@ -31,10 +30,10 @@ const map = function(arr, fn) {
   return results;
 };
 
-const arrayUnique = function(array) {
+const arrayUnique = function (array) {
   let a = array.concat();
   for (let i = 0; i < a.length; ++i) {
-    for (let j = i+1; j < a.length; ++j) {
+    for (let j = i + 1; j < a.length; ++j) {
       if (a[i] === a[j]) {
         a.splice(j--, 1);
       }
@@ -43,13 +42,13 @@ const arrayUnique = function(array) {
   return a;
 };
 
-const onlyStrings = function(array) {
+const onlyStrings = function (array) {
   const newArray = [];
   for (let i = 0; i < array.length; i++) {
-    if (typeof array[i] === "string") {
+    if (typeof array[i] === 'string') {
       newArray.push(array[i]);
     } else {
-      if (typeof array[i].toString === "function") {
+      if (typeof array[i].toString === 'function') {
         newArray.push(array[i].toString());
       }
     }
@@ -57,8 +56,8 @@ const onlyStrings = function(array) {
   return newArray;
 };
 
-const getDataReference = function(item) {
-  if (item instanceof Entity && typeof item.toReference === "function") {
+const getDataReference = function (item) {
+  if (item instanceof Entity && typeof item.toReference === 'function') {
     // Convert entities to references.
     return item.toReference();
   } else if (isArray(item)) {
@@ -69,7 +68,7 @@ const getDataReference = function(item) {
     if (Object.create) {
       newObj = Object.create(item);
     } else {
-      const F = function() {};
+      const F = function () {};
       F.prototype = item;
       newObj = new F();
     }
@@ -84,15 +83,15 @@ const getDataReference = function(item) {
   return item;
 };
 
-const getSleepingReference = function(item) {
+const getSleepingReference = function (item) {
   if (isArray(item)) {
     // Check if it's a reference.
     if (item[0] === 'nymph_entity_reference') {
-      const entityClass = Nymph.getEntityClass(item[2]);
-      if (!entityClass) {
-        throw new NymphClassNotAvailableError(item[2]+" class cannot be found.");
+      const EntityClass = Nymph.getEntityClass(item[2]);
+      if (!EntityClass) {
+        throw new NymphClassNotAvailableError(item[2] + ' class cannot be found.');
       }
-      const entity = new (entityClass)();
+      const entity = new (EntityClass)();
       entity.referenceSleep(item);
       return entity;
     } else {
@@ -110,27 +109,25 @@ const getSleepingReference = function(item) {
   return item;
 };
 
-const sortObj = function(obj) { // adapted from http://am.aurlien.net/post/1221493460/sorting-javascript-objects
-  const temp_array = [];
+const sortObj = function (obj) { // adapted from http://am.aurlien.net/post/1221493460/sorting-javascript-objects
+  const tempArray = [];
   for (let key in obj) {
     if (obj.hasOwnProperty(key)) {
-      temp_array.push(key);
+      tempArray.push(key);
     }
   }
-  temp_array.sort();
-  const temp_obj = {};
-  for (let i = 0; i < temp_array.length; i++) {
-    temp_obj[temp_array[i]] = obj[temp_array[i]];
+  tempArray.sort();
+  const tempObj = {};
+  for (let i = 0; i < tempArray.length; i++) {
+    tempObj[tempArray[i]] = obj[tempArray[i]];
   }
-  return temp_obj;
+  return tempObj;
 };
 
 class Entity {
-
   // === Constructor ===
 
-  constructor(id) {
-
+  constructor (id) {
     // === Instance Properties ===
 
     this.guid = null;
@@ -142,7 +139,7 @@ class Entity {
     this.sleepingReference = false;
     this.readyPromise = null;
 
-    if (typeof id !== "undefined" && !isNaN(parseInt(id, 10))) {
+    if (typeof id !== 'undefined' && !isNaN(parseInt(id, 10))) {
       this.guid = parseInt(id, 10);
       this.isASleepingReference = true;
       this.sleepingReference = ['nymph_entity_reference', this.guid, this.constructor.class];
@@ -152,7 +149,7 @@ class Entity {
 
   // === Static Methods ===
 
-  static serverCallStatic(method, params) {
+  static serverCallStatic (method, params) {
     // Turn the params into a real array, in case an arguments object was passed.
     const paramArray = Array.prototype.slice.call(params);
     return new Promise((resolve, reject) => {
@@ -166,8 +163,8 @@ class Entity {
 
   // === Instance Methods ===
 
-  init(entityData) {
-    if (typeof entityData === "undefined" || entityData === null) {
+  init (entityData) {
+    if (typeof entityData === 'undefined' || entityData === null) {
       return this;
     }
 
@@ -191,7 +188,7 @@ class Entity {
   }
 
   // Tag methods.
-  addTag(...tags) {
+  addTag (...tags) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -201,7 +198,7 @@ class Entity {
     this.tags = onlyStrings(arrayUnique(this.tags.concat(tags)));
   }
 
-  hasTag(...tags) {
+  hasTag (...tags) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -216,7 +213,7 @@ class Entity {
     return true;
   }
 
-  removeTag(...tags) {
+  removeTag (...tags) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -233,7 +230,7 @@ class Entity {
   }
 
   // Property getter and setter. You can also just access Entity.data directly.
-  get(name) {
+  get (name) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -248,11 +245,11 @@ class Entity {
     }
   }
 
-  set(name, value = null) {
+  set (name, value = null) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
-    if (typeof name === "object") {
+    if (typeof name === 'object') {
       for (let k in name) {
         if (name.hasOwnProperty(k)) {
           this.data[k] = name[k];
@@ -263,21 +260,21 @@ class Entity {
     }
   }
 
-  save() {
+  save () {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
     return Nymph.saveEntity(this);
   }
 
-  delete() {
+  delete () {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
     return Nymph.deleteEntity(this);
   }
 
-  is(object) {
+  is (object) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -299,7 +296,7 @@ class Entity {
     }
   }
 
-  equals(object) {
+  equals (object) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -314,7 +311,7 @@ class Entity {
     if (object.constructor.class !== this.constructor.class) {
       return false;
     }
-    //return eq(this, object, [], []);
+    // return eq(this, object, [], []);
     const obData = sortObj(object.toJSON());
     obData.tags.sort();
     obData.data = sortObj(obData.data);
@@ -324,7 +321,7 @@ class Entity {
     return JSON.stringify(obData) === JSON.stringify(myData);
   }
 
-  inArray(array, strict) {
+  inArray (array, strict) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -339,7 +336,7 @@ class Entity {
     return false;
   }
 
-  arraySearch(array, strict) {
+  arraySearch (array, strict) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -354,7 +351,7 @@ class Entity {
     return false;
   }
 
-  refresh() {
+  refresh () {
     if (this.isASleepingReference) {
       return this.ready();
     }
@@ -364,7 +361,7 @@ class Entity {
       });
     }
     return new Promise((resolve, reject) => {
-      Nymph.getEntityData({"class": this.constructor.class} , {"type": "&", "guid": this.guid}).then((data) => {
+      Nymph.getEntityData({'class': this.constructor.class}, {'type': '&', 'guid': this.guid}).then((data) => {
         resolve(this.init(data));
       }, (errObj) => {
         reject(errObj);
@@ -372,7 +369,7 @@ class Entity {
     });
   }
 
-  serverCall(method, params, dontUpdateAfterCall) {
+  serverCall (method, params, dontUpdateAfterCall) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -390,7 +387,7 @@ class Entity {
     });
   }
 
-  toJSON() {
+  toJSON () {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -409,7 +406,7 @@ class Entity {
     return obj;
   }
 
-  toReference() {
+  toReference () {
     if (this.isASleepingReference) {
       return this.sleepingReference;
     }
@@ -419,44 +416,44 @@ class Entity {
     return ['nymph_entity_reference', this.guid, this.constructor.class];
   }
 
-  referenceSleep(reference) {
+  referenceSleep (reference) {
     this.isASleepingReference = true;
     this.guid = parseInt(reference[1], 10);
     this.sleepingReference = [...reference];
   }
 
-  ready(success, error) {
+  ready (success, error) {
     this.readyPromise = new Promise((resolve, reject) => {
       if (!this.isASleepingReference) {
         this.readyPromise = null;
         resolve(this);
-        if (typeof success === "function") {
+        if (typeof success === 'function') {
           success(this);
         }
       } else {
         if (this.readyPromise) {
-          this.readyPromise.then(() =>{
+          this.readyPromise.then(() => {
             resolve(this);
-            if (typeof success === "function") {
+            if (typeof success === 'function') {
               success(this);
             }
           }, (errObj) => {
             reject(errObj);
-            if (typeof error === "function") {
+            if (typeof error === 'function') {
               error(errObj);
             }
           });
         } else {
-          Nymph.getEntityData({"class": this.sleepingReference[2]}, {"type": "&", "guid": this.sleepingReference[1]}).then((data) => {
+          Nymph.getEntityData({'class': this.sleepingReference[2]}, {'type': '&', 'guid': this.sleepingReference[1]}).then((data) => {
             this.readyPromise = null;
             resolve(this.init(data));
-            if (typeof success === "function") {
+            if (typeof success === 'function') {
               success(this);
             }
           }, (errObj) => {
             this.readyPromise = null;
             reject(errObj);
-            if (typeof error === "function") {
+            if (typeof error === 'function') {
               error(errObj);
             }
           });
@@ -466,7 +463,7 @@ class Entity {
     return this.readyPromise;
   }
 
-  readyAll(success, error, level) {
+  readyAll (success, error, level) {
     return new Promise((resolve, reject) => {
       this.ready(() => {
         let newLevel;
@@ -490,12 +487,12 @@ class Entity {
           }
           Promise.all(promises).then(() => {
             resolve(this);
-            if (typeof success === "function") {
+            if (typeof success === 'function') {
               success(this);
             }
           }, (errObj) => {
             reject(errObj);
-            if (typeof error === "function") {
+            if (typeof error === 'function') {
               error(errObj);
             }
           });
@@ -504,7 +501,7 @@ class Entity {
         }
       }, (errObj) => {
         reject(errObj);
-        if (typeof error === "function") {
+        if (typeof error === 'function') {
           error(errObj);
         }
       });
@@ -514,16 +511,16 @@ class Entity {
 
 // === Static Properties ===
 
-Entity.etype = "entity";
+Entity.etype = 'entity';
 // The name of the server class
-Entity.class = "Entity";
+Entity.class = 'Entity';
 
 Nymph.setEntityClass(Entity.class, Entity);
 
 // === Error Classes ===
 
 class EntityIsSleepingReferenceError extends Error {
-  constructor(message) {
+  constructor (message) {
     super(message);
     this.name = 'EntityIsSleepingReferenceError';
   }

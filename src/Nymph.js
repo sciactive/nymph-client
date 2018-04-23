@@ -1,27 +1,38 @@
 /*
-Nymph 3.0.4 nymph.io
+Nymph 3.0.5 nymph.io
 (C) 2014-2018 Hunter Perrin
 license Apache-2.0
 */
-/* global Promise */
-/* global NymphOptions */
+/* global XMLHttpRequest, define */
 'use strict';
 
 let sortProperty = null;
 let sortParent = null;
 let sortCaseSensitive = null;
 
-const isArray = (Array.isArray || function(arr) {
+const isArray = (Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) === '[object Array]';
 });
 
-const arraySortProperty = function(a, b) {
-  let aprop, bprop,
-    property = sortProperty,
-    parent = sortParent,
-    notData = property === "guid" || property === "cdate" || property === "mdate";
-  if (parent !== null && ((a.data[parent] instanceof Nymph.getEntityClass("Entity") && typeof (notData ? a.data[parent][property] : a.data[parent].data[property]) !== "undefined") || (b.data[parent] instanceof Nymph.getEntityClass("Entity") && typeof (notData ? b.data[parent][property] : b.data[parent].data[property]) !== "undefined"))) {
-    if (!sortCaseSensitive && typeof (notData ? a.data[parent][property] : a.data[parent].data[property]) === "string" && typeof (notData ? b.data[parent][property] : b.data[parent].data[property]) === "string") {
+const arraySortProperty = function (a, b) {
+  let aprop;
+  let bprop;
+  let property = sortProperty;
+  let parent = sortParent;
+  let notData = property === 'guid' || property === 'cdate' || property === 'mdate';
+  if (parent !== null &&
+      (
+        (
+          a.data[parent] instanceof Nymph.getEntityClass('Entity') &&
+          typeof (notData ? a.data[parent][property] : a.data[parent].data[property]) !== 'undefined'
+        ) ||
+        (
+          b.data[parent] instanceof Nymph.getEntityClass('Entity') &&
+          typeof (notData ? b.data[parent][property] : b.data[parent].data[property]) !== 'undefined'
+        )
+      )
+  ) {
+    if (!sortCaseSensitive && typeof (notData ? a.data[parent][property] : a.data[parent].data[property]) === 'string' && typeof (notData ? b.data[parent][property] : b.data[parent].data[property]) === 'string') {
       aprop = (notData ? a.data[parent][property] : a.data[parent].data[property]).toUpperCase();
       bprop = (notData ? b.data[parent][property] : b.data[parent].data[property]).toUpperCase();
       if (aprop !== bprop) {
@@ -37,7 +48,10 @@ const arraySortProperty = function(a, b) {
     }
   }
   // If they have the same parent, order them by their own property.
-  if (!sortCaseSensitive && typeof (notData ? a[property] : a.data[property]) === "string" && typeof (notData ? b[property] : b.data[property]) === "string") {
+  if (!sortCaseSensitive &&
+      typeof (notData ? a[property] : a.data[property]) === 'string' &&
+      typeof (notData ? b[property] : b.data[property]) === 'string'
+  ) {
     aprop = (notData ? a[property] : a.data[property]).toUpperCase();
     bprop = (notData ? b[property] : b.data[property]).toUpperCase();
     return aprop.localeCompare(bprop);
@@ -52,7 +66,7 @@ const arraySortProperty = function(a, b) {
   return 0;
 };
 
-const map = function(arr, fn) {
+const map = function (arr, fn) {
   const results = [];
   for (let i = 0; i < arr.length; i++) {
     results.push(fn(arr[i], i));
@@ -60,24 +74,24 @@ const map = function(arr, fn) {
   return results;
 };
 
-const makeUrl = function(url, data, noSep) {
+const makeUrl = function (url, data, noSep) {
   if (!data) {
     return url;
   }
   for (let k in data) {
     if (data.hasOwnProperty(k)) {
       if (noSep) {
-        url = url+(url.length ? '&' : '');
+        url = url + (url.length ? '&' : '');
       } else {
-        url = url+(url.indexOf('?') !== -1 ? '&' : '?');
+        url = url + (url.indexOf('?') !== -1 ? '&' : '?');
       }
-      url = url+encodeURIComponent(k)+'='+encodeURIComponent(data[k]);
+      url = url + encodeURIComponent(k) + '=' + encodeURIComponent(data[k]);
     }
   }
   return url;
 };
 
-const filterPhpMessages = function(text) {
+const filterPhpMessages = function (text) {
   const phpMessages = /<br \/>\n(<b>[\w ]+<\/b>:.*?)<br \/>\n/gm;
   if (text.match(phpMessages)) {
     let match;
@@ -89,14 +103,14 @@ const filterPhpMessages = function(text) {
   return text;
 };
 
-const onReadyStateChange = function(opt) {
-  return function() {
+const onReadyStateChange = function (opt) {
+  return function () {
     if (this.readyState === 4) {
       if (this.status >= 200 && this.status < 400) {
         const response = filterPhpMessages(this.responseText);
-        if (opt.dataType === "json") {
+        if (opt.dataType === 'json') {
           if (!response.length) {
-            throw new NymphInvalidResponseError("Server response was empty.");
+            throw new NymphInvalidResponseError('Server response was empty.');
           }
           try {
             opt.success(JSON.parse(response));
@@ -104,7 +118,7 @@ const onReadyStateChange = function(opt) {
             if (!(e instanceof SyntaxError)) {
               throw e;
             }
-            throw new NymphInvalidResponseError("Server response was invalid.");
+            throw new NymphInvalidResponseError('Server response was invalid.');
           }
         } else {
           opt.success(response);
@@ -118,7 +132,7 @@ const onReadyStateChange = function(opt) {
             throw e;
           }
         }
-        if (typeof errObj !== "object") {
+        if (typeof errObj !== 'object') {
           errObj = {
             textStatus: this.responseText
           };
@@ -130,7 +144,7 @@ const onReadyStateChange = function(opt) {
   };
 };
 
-const getAjax = function(opt) {
+const getAjax = function (opt) {
   let request = new XMLHttpRequest();
   request.open('GET', makeUrl(opt.url, opt.data), true);
 
@@ -140,7 +154,7 @@ const getAjax = function(opt) {
   request = null;
 };
 
-const postputdelAjax = function(opt) {
+const postputdelAjax = function (opt) {
   let request = new XMLHttpRequest();
   request.open(opt.type, opt.url, true);
 
@@ -152,11 +166,9 @@ const postputdelAjax = function(opt) {
 };
 
 class Nymph {
-
   // === Constructor ===
 
-  constructor() {
-
+  constructor () {
     // === Instance Properties ===
 
     this.restURL = null;
@@ -164,21 +176,21 @@ class Nymph {
 
   // === Static Methods ===
 
-  static setEntityClass(className, entityClass) {
+  static setEntityClass (className, entityClass) {
     Nymph.entityClasses[className] = entityClass;
   }
 
-  static getEntityClass(className) {
+  static getEntityClass (className) {
     if (Nymph.entityClasses.hasOwnProperty(className)) {
       return Nymph.entityClasses[className];
     }
-    if (typeof window !== "undefined" && typeof window[className] !== "undefined") {
+    if (typeof window !== 'undefined' && typeof window[className] !== 'undefined') {
       return window[className];
     }
-    if (typeof define === "function" && define.amd) {
-      return require('Nymph'+className);
+    if (typeof define === 'function' && define.amd) {
+      return require('Nymph' + className);
     }
-    if (typeof require === "function") {
+    if (typeof require === 'function') {
       return require(className);
     }
     return null;
@@ -186,20 +198,20 @@ class Nymph {
 
   // === Instance Methods ===
 
-  init(NymphOptions) {
+  init (NymphOptions) {
     this.restURL = NymphOptions.restURL;
     return this;
   }
 
-  setEntityClass(className, entityClass) {
+  setEntityClass (className, entityClass) {
     Nymph.setEntityClass(className, entityClass);
   }
 
-  getEntityClass(className) {
+  getEntityClass (className) {
     return Nymph.getEntityClass(className);
   }
 
-  newUID(name) {
+  newUID (name) {
     return new Promise((resolve, reject) => {
       postputdelAjax({
         type: 'POST',
@@ -216,13 +228,13 @@ class Nymph {
     });
   }
 
-  setUID(name, value) {
+  setUID (name, value) {
     return new Promise((resolve, reject) => {
       postputdelAjax({
         type: 'PUT',
         url: this.restURL,
         dataType: 'json',
-        data: {'action': 'uid', 'data': JSON.stringify({"name": name, "value": value})},
+        data: {'action': 'uid', 'data': JSON.stringify({'name': name, 'value': value})},
         success: (data) => {
           resolve(data);
         },
@@ -233,7 +245,7 @@ class Nymph {
     });
   }
 
-  getUID(name) {
+  getUID (name) {
     return new Promise((resolve, reject) => {
       getAjax({
         url: this.restURL,
@@ -249,7 +261,7 @@ class Nymph {
     });
   }
 
-  deleteUID(name) {
+  deleteUID (name) {
     return new Promise((resolve, reject) => {
       postputdelAjax({
         type: 'DELETE',
@@ -265,7 +277,7 @@ class Nymph {
     });
   }
 
-  saveEntity(entity, plural) {
+  saveEntity (entity, plural) {
     let method;
     if (plural) {
       entity.forEach((cur) => {
@@ -273,8 +285,8 @@ class Nymph {
           method = cur.guid === null ? 'POST' : 'PUT';
         } else if ((method === 'POST' && cur.guid !== null) ||
             (method === 'PUT' && cur.guid === null)
-          ) {
-          throw new NymphInvalidRequestError("Due to REST restriction, you can only create new entities or update existing entities, not both at the same time.");
+        ) {
+          throw new NymphInvalidRequestError('Due to REST restriction, you can only create new entities or update existing entities, not both at the same time.');
         }
       });
       if (!method) {
@@ -292,17 +304,17 @@ class Nymph {
         success: (data) => {
           if (plural && entity.length === data.length) {
             for (let i = 0; i < data.length; i++) {
-              if (typeof data[i].guid !== "undefined" && data[i].guid > 0 &&
+              if (typeof data[i].guid !== 'undefined' && data[i].guid > 0 &&
                   (entity[i].guid === null || entity[i].guid === data[i].guid)
-                ) {
+              ) {
                 entity[i].init(data[i]);
               }
             }
             resolve(entity);
-          } else if (typeof data.guid !== "undefined" && data.guid > 0) {
+          } else if (typeof data.guid !== 'undefined' && data.guid > 0) {
             resolve(entity.init(data));
           } else {
-            reject({textStatus: "Server error"});
+            reject({textStatus: 'Server error'}); // eslint-disable-line prefer-promise-reject-errors
           }
         },
         error: (errObj) => {
@@ -312,13 +324,13 @@ class Nymph {
     });
   }
 
-  saveEntities(entities) {
+  saveEntities (entities) {
     return this.saveEntity(entities, true);
   }
 
-  getEntity(options, ...selectors) {
+  getEntity (options, ...selectors) {
     return new Promise((resolve, reject) => {
-      this.getEntityData.call(this, options, ...selectors).then((data) => {
+      this.getEntityData(options, ...selectors).then((data) => {
         if (data !== null) {
           resolve(this.initEntity(data));
         } else {
@@ -330,14 +342,14 @@ class Nymph {
     });
   }
 
-  getEntityData(options, ...selectors) {
+  getEntityData (options, ...selectors) {
     return new Promise((resolve, reject) => {
       getAjax({
         url: this.restURL,
         dataType: 'json',
         data: {'action': 'entity', 'data': JSON.stringify([options, ...selectors])},
         success: (data) => {
-          if (typeof data.guid !== "undefined" && data.guid > 0) {
+          if (typeof data.guid !== 'undefined' && data.guid > 0) {
             resolve(data);
           } else {
             resolve(null);
@@ -350,7 +362,7 @@ class Nymph {
     });
   }
 
-  getEntities(options, ...selectors) {
+  getEntities (options, ...selectors) {
     return new Promise((resolve, reject) => {
       getAjax({
         url: this.restURL,
@@ -366,32 +378,30 @@ class Nymph {
     });
   }
 
-  initEntity(entityJSON) {
-    const entityClass = Nymph.getEntityClass(entityJSON.class);
-    if (!entityClass) {
-      throw new NymphClassNotAvailableError(entityJSON.class+" class cannot be found.");
+  initEntity (entityJSON) {
+    const EntityClass = Nymph.getEntityClass(entityJSON.class);
+    if (!EntityClass) {
+      throw new NymphClassNotAvailableError(entityJSON.class + ' class cannot be found.');
     }
-    const entity = new (entityClass)();
+    const entity = new (EntityClass)();
     return entity.init(entityJSON);
   }
 
-  initEntitiesFromData(item) {
+  initEntitiesFromData (item) {
     if (isArray(item)) {
       // Recurse into lower arrays.
       return map(item, this.initEntitiesFromData.bind(this));
-    } else if (
-        item instanceof Object
-        && !(item instanceof this.getEntityClass('Entity'))
+    } else if (item instanceof Object &&
+        !(item instanceof this.getEntityClass('Entity'))
+    ) {
+      if (item.hasOwnProperty('class') &&
+          Nymph.getEntityClass(item.class) &&
+          item.hasOwnProperty('guid') &&
+          item.hasOwnProperty('cdate') &&
+          item.hasOwnProperty('mdate') &&
+          item.hasOwnProperty('tags') &&
+          item.hasOwnProperty('data')
       ) {
-      if (
-          item.hasOwnProperty('class')
-          && Nymph.getEntityClass(item.class)
-          && item.hasOwnProperty('guid')
-          && item.hasOwnProperty('cdate')
-          && item.hasOwnProperty('mdate')
-          && item.hasOwnProperty('tags')
-          && item.hasOwnProperty('data')
-        ) {
         return this.initEntity(item);
       } else {
         for (let k in item) {
@@ -405,7 +415,7 @@ class Nymph {
     return item;
   }
 
-  deleteEntity(entity, plural) {
+  deleteEntity (entity, plural) {
     let cur;
     if (plural) {
       for (let i = 0; i < entity.length; i++) {
@@ -434,15 +444,15 @@ class Nymph {
     });
   }
 
-  deleteEntities(entities) {
+  deleteEntities (entities) {
     return this.deleteEntity(entities, true);
   }
 
-  updateArray(oldArr, newArrIn) {
+  updateArray (oldArr, newArrIn) {
     const newArr = Array.prototype.slice.call(newArrIn);
     const idMap = {};
     for (let i = 0; i < newArr.length; i++) {
-      if (newArr[i] instanceof Nymph.getEntityClass("Entity") && newArr[i].guid) {
+      if (newArr[i] instanceof Nymph.getEntityClass('Entity') && newArr[i].guid) {
         idMap[newArr[i].guid] = i;
       }
     }
@@ -450,7 +460,7 @@ class Nymph {
     for (let k in oldArr) {
       if (k <= 4294967294 && /^0$|^[1-9]\d*$/.test(k) && oldArr.hasOwnProperty(k)) { // This handles sparse arrays.
         k = Number(k);
-        if (typeof idMap[oldArr[k].guid] === "undefined") {
+        if (typeof idMap[oldArr[k].guid] === 'undefined') {
           // It was deleted.
           remove.push(k);
         } else if (newArr[idMap[oldArr[k].guid]].mdate !== oldArr[k].mdate) {
@@ -464,7 +474,7 @@ class Nymph {
       }
     }
     // Now we must remove the deleted ones.
-    remove.sort(function(a, b){
+    remove.sort(function (a, b) {
       // Sort backwards so we can remove in reverse order. (Preserves indices.)
       if (a > b) return -1;
       if (a < b) return 1;
@@ -481,7 +491,7 @@ class Nymph {
     }
   }
 
-  serverCall(entity, method, params) {
+  serverCall (entity, method, params) {
     return new Promise((resolve, reject) => {
       postputdelAjax({
         type: 'POST',
@@ -498,7 +508,7 @@ class Nymph {
     });
   }
 
-  serverCallStatic(className, method, params) {
+  serverCallStatic (className, method, params) {
     return new Promise((resolve, reject) => {
       postputdelAjax({
         type: 'POST',
@@ -515,57 +525,57 @@ class Nymph {
     });
   }
 
-  hsort(array, property, parentProperty, caseSensitive, reverse) {
+  hsort (array, property, parentProperty, caseSensitive, reverse) {
     // First sort by the requested property.
     this.sort(array, property, caseSensitive, reverse);
-    if (typeof parentProperty === "undefined" || parentProperty === null) {
+    if (typeof parentProperty === 'undefined' || parentProperty === null) {
       return array;
     }
 
     // Now sort by children.
-    let new_array = [];
+    let newArray = [];
     // Look for entities ready to go in order.
-    let changed, pkey, ancestry, new_key;
+    let changed, pkey, ancestry, newKey;
     while (array.length) {
       changed = false;
       for (let key = 0; key < array.length; key++) {
         // Must break after adding one, so any following children don't go in the wrong order.
         if (
-            typeof array[key].data[parentProperty] === "undefined" ||
+          typeof array[key].data[parentProperty] === 'undefined' ||
             array[key].data[parentProperty] === null ||
-            typeof array[key].data[parentProperty].inArray !== "function" ||
-            !array[key].data[parentProperty].inArray(new_array.concat(array))
-          ) {
+            typeof array[key].data[parentProperty].inArray !== 'function' ||
+            !array[key].data[parentProperty].inArray(newArray.concat(array))
+        ) {
           // If they have no parent (or their parent isn't in the array), they go on the end.
-          new_array.push(array[key]);
+          newArray.push(array[key]);
           array.splice(key, 1);
           changed = true;
           break;
         } else {
           // Else find the parent.
-          pkey = array[key].data[parentProperty].arraySearch(new_array);
+          pkey = array[key].data[parentProperty].arraySearch(newArray);
           if (pkey !== false) {
             // And insert after the parent.
             // This makes entities go to the end of the child list.
             ancestry = [array[key].data[parentProperty].guid];
-            new_key = Number(pkey);
+            newKey = Number(pkey);
             while (
-                typeof new_array[new_key + 1] !== "undefined" &&
-                typeof new_array[new_key + 1].data[parentProperty] !== "undefined" &&
-                new_array[new_key + 1].data[parentProperty] !== null &&
-                ancestry.indexOf(new_array[new_key + 1].data[parentProperty].guid) !== -1
-              ) {
-              ancestry.push(new_array[new_key + 1].guid);
-              new_key += 1;
+              typeof newArray[newKey + 1] !== 'undefined' &&
+                typeof newArray[newKey + 1].data[parentProperty] !== 'undefined' &&
+                newArray[newKey + 1].data[parentProperty] !== null &&
+                ancestry.indexOf(newArray[newKey + 1].data[parentProperty].guid) !== -1
+            ) {
+              ancestry.push(newArray[newKey + 1].guid);
+              newKey += 1;
             }
             // Where to place the entity.
-            new_key += 1;
-            if (typeof new_array[new_key] !== "undefined") {
+            newKey += 1;
+            if (typeof newArray[newKey] !== 'undefined') {
               // If it already exists, we have to splice it in.
-              new_array.splice(new_key, 0, array[key]);
+              newArray.splice(newKey, 0, array[key]);
             } else {
               // Else just add it.
-              new_array.push(array[key]);
+              newArray.push(array[key]);
             }
             array.splice(key, 1);
             changed = true;
@@ -576,19 +586,19 @@ class Nymph {
       if (!changed) {
         // If there are any unexpected errors and the array isn't changed, just stick the rest on the end.
         if (array.length) {
-          new_array = new_array.concat(array);
+          newArray = newArray.concat(array);
           array = [];
         }
       }
     }
     // Now push the new array out.
-    array = new_array;
+    array = newArray;
     return array;
   }
 
-  psort(array, property, parentProperty, caseSensitive, reverse) {
+  psort (array, property, parentProperty, caseSensitive, reverse) {
     // Sort by the requested property.
-    if (typeof property !== "undefined") {
+    if (typeof property !== 'undefined') {
       sortProperty = property;
       sortParent = parentProperty;
       sortCaseSensitive = !!caseSensitive;
@@ -600,9 +610,9 @@ class Nymph {
     return array;
   }
 
-  sort(array, property, caseSensitive, reverse) {
+  sort (array, property, caseSensitive, reverse) {
     // Sort by the requested property.
-    if (typeof property !== "undefined") {
+    if (typeof property !== 'undefined') {
       sortProperty = property;
       sortParent = null;
       sortCaseSensitive = !!caseSensitive;
@@ -618,27 +628,27 @@ class Nymph {
 // === Static Properties ===
 
 // The current version of Nymph Client.
-Nymph.version = "3.0.4";
+Nymph.version = '3.0.5';
 Nymph.entityClasses = {};
 
 // === Error Classes ===
 
 class NymphClassNotAvailableError extends Error {
-  constructor(message) {
+  constructor (message) {
     super(message);
     this.name = 'NymphClassNotAvailableError';
   }
 }
 
 class NymphInvalidRequestError extends Error {
-  constructor(message) {
+  constructor (message) {
     super(message);
     this.name = 'NymphInvalidRequestError';
   }
 }
 
 class NymphInvalidResponseError extends Error {
-  constructor(message) {
+  constructor (message) {
     super(message);
     this.name = 'NymphInvalidResponseError';
   }
