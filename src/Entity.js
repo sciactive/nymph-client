@@ -1,11 +1,6 @@
-/*
-Nymph Entity 3.0.5 nymph.io
-(C) 2014-2018 Hunter Perrin
-license Apache-2.0
-*/
 'use strict';
 
-import {Nymph, NymphClassNotAvailableError} from 'Nymph';
+import {Nymph, NymphClassNotAvailableError} from './Nymph';
 
 const sleepErr = 'This entity is in a sleeping reference state. You must use .ready().then() to wake it.';
 
@@ -124,7 +119,7 @@ const sortObj = function (obj) { // adapted from http://am.aurlien.net/post/1221
   return tempObj;
 };
 
-class Entity {
+export default class Entity {
   // === Constructor ===
 
   constructor (id) {
@@ -519,12 +514,9 @@ Nymph.setEntityClass(Entity.class, Entity);
 
 // === Error Classes ===
 
-class EntityIsSleepingReferenceError extends Error {
+export class EntityIsSleepingReferenceError extends Error {
   constructor (message) {
     super(message);
     this.name = 'EntityIsSleepingReferenceError';
   }
 }
-
-export {Entity, EntityIsSleepingReferenceError};
-export default Entity;

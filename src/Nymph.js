@@ -1,8 +1,3 @@
-/*
-Nymph 3.0.5 nymph.io
-(C) 2014-2018 Hunter Perrin
-license Apache-2.0
-*/
 /* global XMLHttpRequest, define */
 'use strict';
 
@@ -165,15 +160,7 @@ const postputdelAjax = function (opt) {
   request = null;
 };
 
-class Nymph {
-  // === Constructor ===
-
-  constructor () {
-    // === Instance Properties ===
-
-    this.restURL = null;
-  }
-
+export default class Nymph {
   // === Static Methods ===
 
   static setEntityClass (className, entityClass) {
@@ -196,22 +183,11 @@ class Nymph {
     return null;
   }
 
-  // === Instance Methods ===
-
-  init (NymphOptions) {
+  static init (NymphOptions) {
     this.restURL = NymphOptions.restURL;
-    return this;
   }
 
-  setEntityClass (className, entityClass) {
-    Nymph.setEntityClass(className, entityClass);
-  }
-
-  getEntityClass (className) {
-    return Nymph.getEntityClass(className);
-  }
-
-  newUID (name) {
+  static newUID (name) {
     return new Promise((resolve, reject) => {
       postputdelAjax({
         type: 'POST',
@@ -228,7 +204,7 @@ class Nymph {
     });
   }
 
-  setUID (name, value) {
+  static setUID (name, value) {
     return new Promise((resolve, reject) => {
       postputdelAjax({
         type: 'PUT',
@@ -245,7 +221,7 @@ class Nymph {
     });
   }
 
-  getUID (name) {
+  static getUID (name) {
     return new Promise((resolve, reject) => {
       getAjax({
         url: this.restURL,
@@ -261,7 +237,7 @@ class Nymph {
     });
   }
 
-  deleteUID (name) {
+  static deleteUID (name) {
     return new Promise((resolve, reject) => {
       postputdelAjax({
         type: 'DELETE',
@@ -277,7 +253,7 @@ class Nymph {
     });
   }
 
-  saveEntity (entity, plural) {
+  static saveEntity (entity, plural) {
     let method;
     if (plural) {
       entity.forEach((cur) => {
@@ -324,11 +300,11 @@ class Nymph {
     });
   }
 
-  saveEntities (entities) {
+  static saveEntities (entities) {
     return this.saveEntity(entities, true);
   }
 
-  getEntity (options, ...selectors) {
+  static getEntity (options, ...selectors) {
     return new Promise((resolve, reject) => {
       this.getEntityData(options, ...selectors).then((data) => {
         if (data !== null) {
@@ -342,7 +318,7 @@ class Nymph {
     });
   }
 
-  getEntityData (options, ...selectors) {
+  static getEntityData (options, ...selectors) {
     return new Promise((resolve, reject) => {
       getAjax({
         url: this.restURL,
@@ -362,7 +338,7 @@ class Nymph {
     });
   }
 
-  getEntities (options, ...selectors) {
+  static getEntities (options, ...selectors) {
     return new Promise((resolve, reject) => {
       getAjax({
         url: this.restURL,
@@ -378,7 +354,7 @@ class Nymph {
     });
   }
 
-  initEntity (entityJSON) {
+  static initEntity (entityJSON) {
     const EntityClass = Nymph.getEntityClass(entityJSON.class);
     if (!EntityClass) {
       throw new NymphClassNotAvailableError(entityJSON.class + ' class cannot be found.');
@@ -387,7 +363,7 @@ class Nymph {
     return entity.init(entityJSON);
   }
 
-  initEntitiesFromData (item) {
+  static initEntitiesFromData (item) {
     if (isArray(item)) {
       // Recurse into lower arrays.
       return map(item, this.initEntitiesFromData.bind(this));
@@ -415,7 +391,7 @@ class Nymph {
     return item;
   }
 
-  deleteEntity (entity, plural) {
+  static deleteEntity (entity, plural) {
     let cur;
     if (plural) {
       for (let i = 0; i < entity.length; i++) {
@@ -444,11 +420,11 @@ class Nymph {
     });
   }
 
-  deleteEntities (entities) {
+  static deleteEntities (entities) {
     return this.deleteEntity(entities, true);
   }
 
-  updateArray (oldArr, newArrIn) {
+  static updateArray (oldArr, newArrIn) {
     const newArr = Array.prototype.slice.call(newArrIn);
     const idMap = {};
     for (let i = 0; i < newArr.length; i++) {
@@ -491,7 +467,7 @@ class Nymph {
     }
   }
 
-  serverCall (entity, method, params) {
+  static serverCall (entity, method, params) {
     return new Promise((resolve, reject) => {
       postputdelAjax({
         type: 'POST',
@@ -508,7 +484,7 @@ class Nymph {
     });
   }
 
-  serverCallStatic (className, method, params) {
+  static serverCallStatic (className, method, params) {
     return new Promise((resolve, reject) => {
       postputdelAjax({
         type: 'POST',
@@ -525,7 +501,7 @@ class Nymph {
     });
   }
 
-  hsort (array, property, parentProperty, caseSensitive, reverse) {
+  static hsort (array, property, parentProperty, caseSensitive, reverse) {
     // First sort by the requested property.
     this.sort(array, property, caseSensitive, reverse);
     if (typeof parentProperty === 'undefined' || parentProperty === null) {
@@ -596,7 +572,7 @@ class Nymph {
     return array;
   }
 
-  psort (array, property, parentProperty, caseSensitive, reverse) {
+  static psort (array, property, parentProperty, caseSensitive, reverse) {
     // Sort by the requested property.
     if (typeof property !== 'undefined') {
       sortProperty = property;
@@ -610,7 +586,7 @@ class Nymph {
     return array;
   }
 
-  sort (array, property, caseSensitive, reverse) {
+  static sort (array, property, caseSensitive, reverse) {
     // Sort by the requested property.
     if (typeof property !== 'undefined') {
       sortProperty = property;
@@ -628,36 +604,32 @@ class Nymph {
 // === Static Properties ===
 
 // The current version of Nymph Client.
-Nymph.version = '3.0.5';
+Nymph.version = '4.0.0-beta.1';
 Nymph.entityClasses = {};
 
 // === Error Classes ===
 
-class NymphClassNotAvailableError extends Error {
+export class NymphClassNotAvailableError extends Error {
   constructor (message) {
     super(message);
     this.name = 'NymphClassNotAvailableError';
   }
 }
 
-class NymphInvalidRequestError extends Error {
+export class NymphInvalidRequestError extends Error {
   constructor (message) {
     super(message);
     this.name = 'NymphInvalidRequestError';
   }
 }
 
-class NymphInvalidResponseError extends Error {
+export class NymphInvalidResponseError extends Error {
   constructor (message) {
     super(message);
     this.name = 'NymphInvalidResponseError';
   }
 }
 
-let nymph = new Nymph();
 if (typeof window !== 'undefined' && typeof window.NymphOptions !== 'undefined') {
-  nymph.init(window.NymphOptions);
+  Nymph.init(window.NymphOptions);
 }
-
-export {nymph as Nymph, NymphClassNotAvailableError, NymphInvalidRequestError, NymphInvalidResponseError};
-export default nymph;

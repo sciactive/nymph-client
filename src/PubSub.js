@@ -1,37 +1,17 @@
-/*
-Nymph PubSub 3.0.5 nymph.io
-(C) 2014-2018 Hunter Perrin
-license Apache-2.0
-*/
 /* global WebSocket */
 'use strict';
 
-import Nymph from 'Nymph';
-import Entity from 'Entity';
+import {Nymph} from './Nymph';
+import {Entity} from './Entity';
 
 if (typeof WebSocket === 'undefined') {
   throw new Error('Nymph-PubSub requires WebSocket!');
 }
 
-class PubSub {
-  // === Constructor ===
+export default class PubSub {
+  // === Static Methods ===
 
-  constructor () {
-    // === Instance Properties ===
-
-    this.connection = null;
-    this.pubsubURL = null;
-    this.rateLimit = null;
-    this.debouncers = {};
-    this.subscriptions = {
-      queries: {},
-      uids: {}
-    };
-  }
-
-  // === Instance Methods ===
-
-  init (NymphOptions) {
+  static init (NymphOptions) {
     this.pubsubURL = NymphOptions.pubsubURL;
     if (NymphOptions.rateLimit) {
       this.rateLimit = NymphOptions.rateLimit;
@@ -39,10 +19,106 @@ class PubSub {
 
     this.connect();
 
+    // Override the original Nymph methods to allow subscriptions.
+    let getEntities = Nymph.getEntities;
+    let getEntity = Nymph.getEntity;
+    let getUID = Nymph.getUID;
+
+    Nymph.getEntities = function (options, ...selectors) {
+      const promise = getEntities.apply(Nymph, [options, ...selectors]);
+      promise.query = JSON.stringify([options, ...selectors]);
+      promise.subscribe = (resolve, reject, count) => {
+        const callbacks = [resolve, reject, count];
+
+        promise.then(resolve, reject);
+
+        PubSub.subscribeQuery(promise.query, callbacks);
+        return new PubSubSubscription(promise.query, callbacks, () => {
+          PubSub.unsubscribeQuery(promise.query, callbacks);
+        });
+      };
+      return promise;
+    };
+
+    Nymph.getEntity = function (options, ...selectors) {
+      const promise = getEntity.apply(Nymph, [options, ...selectors]);
+      options.limit = 1;
+      promise.query = JSON.stringify([options, ...selectors]);
+      promise.subscribe = (resolve, reject, count) => {
+        const newResolve = (args) => {
+          if (!args.length) {
+            if (resolve) {
+              resolve(null);
+            }
+          } else {
+            if (resolve) {
+              resolve(args[0]);
+            }
+          }
+        };
+        const callbacks = [newResolve, reject, count];
+
+        promise.then(resolve, reject);
+
+        PubSub.subscribeQuery(promise.query, callbacks);
+        return new PubSubSubscription(promise.query, callbacks, () => {
+          PubSub.unsubscribeQuery(promise.query, callbacks);
+        });
+      };
+      return promise;
+    };
+
+    Nymph.getUID = function (name) {
+      const promise = getUID.apply(Nymph, [name]);
+      promise.subscribe = (resolve, reject, count) => {
+        const callbacks = [resolve, reject, count];
+
+        promise.then(resolve, reject);
+
+        PubSub.subscribeUID(name, callbacks);
+        return {
+          unsubscribe: () => {
+            PubSub.unsubscribeUID(name, callbacks);
+          }
+        };
+      };
+      return promise;
+    };
+
+    Entity.prototype.subscribe = function (resolve, reject, count) {
+      if (!this.guid) {
+        return false;
+      }
+      const query = [{'class': this.constructor.class, 'limit': 1}, {type: '&', guid: this.guid}];
+      const jsonQuery = JSON.stringify(query);
+
+      const newResolve = (args) => {
+        if (!args.length) {
+          this.guid = null;
+          if (resolve) {
+            resolve(this);
+          }
+        } else {
+          this.init(args[0]);
+          if (resolve) {
+            resolve(this);
+          }
+        }
+      };
+      const callbacks = [newResolve, reject, count];
+
+      PubSub.subscribeQuery(jsonQuery, callbacks);
+      return {
+        unsubscribe: () => {
+          PubSub.unsubscribeQuery(jsonQuery, callbacks);
+        }
+      };
+    };
+
     return this;
   }
 
-  connect () {
+  static connect () {
     let timedAttemptConnect = () => {
       // Attempt to connect, wait 5 seconds, then check and attempt again if unsuccessful.
       setTimeout(() => {
@@ -161,7 +237,7 @@ class PubSub {
     timedAttemptConnect();
   }
 
-  debounce (func, immediate) {
+  static debounce (func, immediate) {
     let timeout;
     let that = this;
     return function (...args) {
@@ -181,7 +257,7 @@ class PubSub {
     };
   }
 
-  subscribeQuery (query, callbacks) {
+  static subscribeQuery (query, callbacks) {
     let isNewSubscription = false;
     if (typeof this.subscriptions.queries[query] === 'undefined') {
       this.subscriptions.queries[query] = [];
@@ -199,7 +275,7 @@ class PubSub {
     }
   }
 
-  subscribeUID (name, callbacks) {
+  static subscribeUID (name, callbacks) {
     let isNewSubscription = false;
     if (typeof this.subscriptions.uids[name] === 'undefined') {
       this.subscriptions.uids[name] = [];
@@ -217,7 +293,7 @@ class PubSub {
     }
   }
 
-  _subscribeQuery (query, count) {
+  static _subscribeQuery (query, count) {
     this.connection.send(JSON.stringify({
       'action': 'subscribe',
       'query': query,
@@ -225,7 +301,7 @@ class PubSub {
     }));
   }
 
-  _subscribeUID (name, count) {
+  static _subscribeUID (name, count) {
     this.connection.send(JSON.stringify({
       'action': 'subscribe',
       'uid': name,
@@ -233,7 +309,7 @@ class PubSub {
     }));
   }
 
-  _isCountSubscribedQuery (query) {
+  static _isCountSubscribedQuery (query) {
     if (typeof this.subscriptions.queries[query] === 'undefined') {
       return false;
     }
@@ -245,7 +321,7 @@ class PubSub {
     return false;
   }
 
-  _isCountSubscribedUID (name) {
+  static _isCountSubscribedUID (name) {
     if (typeof this.subscriptions.uids[name] === 'undefined') {
       return false;
     }
@@ -257,7 +333,7 @@ class PubSub {
     return false;
   }
 
-  unsubscribeQuery (query, callbacks) {
+  static unsubscribeQuery (query, callbacks) {
     if (typeof this.subscriptions.queries[query] === 'undefined') {
       return;
     }
@@ -274,7 +350,7 @@ class PubSub {
     }
   }
 
-  unsubscribeUID (name, callbacks) {
+  static unsubscribeUID (name, callbacks) {
     if (typeof this.subscriptions.uids[name] === 'undefined') {
       return;
     }
@@ -291,14 +367,14 @@ class PubSub {
     }
   }
 
-  _unsubscribeQuery (query) {
+  static _unsubscribeQuery (query) {
     this.connection.send(JSON.stringify({
       'action': 'unsubscribe',
       'query': query
     }));
   }
 
-  _unsubscribeUID (name) {
+  static _unsubscribeUID (name) {
     this.connection.send(JSON.stringify({
       'action': 'unsubscribe',
       'uid': name
@@ -306,7 +382,17 @@ class PubSub {
   }
 }
 
-class PubSubSubscription {
+// === Static Properties ===
+PubSub.connection = null;
+PubSub.pubsubURL = null;
+PubSub.rateLimit = null;
+PubSub.debouncers = {};
+PubSub.subscriptions = {
+  queries: {},
+  uids: {}
+};
+
+export class PubSubSubscription {
   // === Constructor ===
 
   constructor (query, callbacks, unsubscribe) {
@@ -318,106 +404,6 @@ class PubSubSubscription {
   }
 }
 
-let pubSub = new PubSub();
 if (typeof window !== 'undefined' && typeof window.NymphOptions !== 'undefined') {
-  pubSub.init(window.NymphOptions);
+  PubSub.init(window.NymphOptions);
 }
-
-// Override the original Nymph methods to allow subscriptions.
-let getEntities = Nymph.getEntities;
-let getEntity = Nymph.getEntity;
-let getUID = Nymph.getUID;
-
-Nymph.getEntities = function (options, ...selectors) {
-  const promise = getEntities.apply(Nymph, [options, ...selectors]);
-  promise.query = JSON.stringify([options, ...selectors]);
-  promise.subscribe = (resolve, reject, count) => {
-    const callbacks = [resolve, reject, count];
-
-    promise.then(resolve, reject);
-
-    pubSub.subscribeQuery(promise.query, callbacks);
-    return new PubSubSubscription(promise.query, callbacks, () => {
-      pubSub.unsubscribeQuery(promise.query, callbacks);
-    });
-  };
-  return promise;
-};
-
-Nymph.getEntity = function (options, ...selectors) {
-  const promise = getEntity.apply(Nymph, [options, ...selectors]);
-  options.limit = 1;
-  promise.query = JSON.stringify([options, ...selectors]);
-  promise.subscribe = (resolve, reject, count) => {
-    const newResolve = (args) => {
-      if (!args.length) {
-        if (resolve) {
-          resolve(null);
-        }
-      } else {
-        if (resolve) {
-          resolve(args[0]);
-        }
-      }
-    };
-    const callbacks = [newResolve, reject, count];
-
-    promise.then(resolve, reject);
-
-    pubSub.subscribeQuery(promise.query, callbacks);
-    return new PubSubSubscription(promise.query, callbacks, () => {
-      pubSub.unsubscribeQuery(promise.query, callbacks);
-    });
-  };
-  return promise;
-};
-
-Nymph.getUID = function (name) {
-  const promise = getUID.apply(Nymph, [name]);
-  promise.subscribe = (resolve, reject, count) => {
-    const callbacks = [resolve, reject, count];
-
-    promise.then(resolve, reject);
-
-    pubSub.subscribeUID(name, callbacks);
-    return {
-      unsubscribe: () => {
-        pubSub.unsubscribeUID(name, callbacks);
-      }
-    };
-  };
-  return promise;
-};
-
-Entity.prototype.subscribe = function (resolve, reject, count) {
-  if (!this.guid) {
-    return false;
-  }
-  const query = [{'class': this.constructor.class, 'limit': 1}, {type: '&', guid: this.guid}];
-  const jsonQuery = JSON.stringify(query);
-
-  const newResolve = (args) => {
-    if (!args.length) {
-      this.guid = null;
-      if (resolve) {
-        resolve(this);
-      }
-    } else {
-      this.init(args[0]);
-      if (resolve) {
-        resolve(this);
-      }
-    }
-  };
-  const callbacks = [newResolve, reject, count];
-
-  pubSub.subscribeQuery(jsonQuery, callbacks);
-  return {
-    unsubscribe: () => {
-      pubSub.unsubscribeQuery(jsonQuery, callbacks);
-    }
-  };
-};
-
-export {pubSub as PubSub, PubSubSubscription};
-export default pubSub;

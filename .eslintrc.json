@@ -1,12 +1,4 @@
 {
   "extends": "semistandard",
-  "parser": "babel-eslint",
-
-  "plugins": [
-    "html"
-  ],
-
-  "settings": {
-    "html/indent": "+2"
-  }
+  "parser": "babel-eslint"
 }
