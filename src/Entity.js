@@ -225,7 +225,7 @@ export class Entity {
   }
 
   // Property getter and setter. You can also just access Entity.data directly.
-  get (name) {
+  get (name = null) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -235,6 +235,8 @@ export class Entity {
         result[name[i]] = this.data[name[i]];
       }
       return result;
+    } else if (name == null) {
+      return this.data;
     } else {
       return this.data[name];
     }
