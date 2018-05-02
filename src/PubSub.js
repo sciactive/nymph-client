@@ -4,6 +4,8 @@
 import {Nymph} from './Nymph';
 import {Entity} from './Entity';
 
+let authToken = null;
+
 if (typeof WebSocket === 'undefined') {
   throw new Error('Nymph-PubSub requires WebSocket!');
 }
@@ -135,6 +137,13 @@ export class PubSub {
           console.log('Nymph-PubSub connection established!');
         }
 
+        if (authToken !== null) {
+          this.connection.send(JSON.stringify({
+            'action': 'authenticate',
+            'token': authToken
+          }));
+        }
+
         for (let query in this.subscriptions.queries) {
           if (!this.subscriptions.queries.hasOwnProperty(query)) {
             continue;
@@ -222,7 +231,6 @@ export class PubSub {
             }
           };
         }
-        /* jshint -W038 */
         if (!this.rateLimit) {
           func();
           return;
@@ -230,7 +238,6 @@ export class PubSub {
         if (typeof this.debouncers[e.data] === 'undefined') {
           this.debouncers[e.data] = this.debounce(func);
         }
-        /* jshint +W038 */
         this.debouncers[e.data]();
       };
     };
@@ -379,6 +386,16 @@ export class PubSub {
       'action': 'unsubscribe',
       'uid': name
     }));
+  }
+
+  static setToken (token) {
+    authToken = token;
+    if (this.connection.readyState === WebSocket.OPEN) {
+      this.connection.send(JSON.stringify({
+        'action': 'authenticate',
+        'token': authToken
+      }));
+    }
   }
 }
 

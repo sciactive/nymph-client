@@ -4,6 +4,7 @@
 let sortProperty = null;
 let sortParent = null;
 let sortCaseSensitive = null;
+let xsrfToken = null;
 
 const isArray = (Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) === '[object Array]';
@@ -145,6 +146,9 @@ const getAjax = function (opt) {
 
   request.onreadystatechange = onReadyStateChange(opt);
 
+  if (xsrfToken !== null) {
+    request.setRequestHeader('X-Xsrf-Token', xsrfToken);
+  }
   request.send();
   request = null;
 };
@@ -155,6 +159,9 @@ const postputdelAjax = function (opt) {
 
   request.onreadystatechange = onReadyStateChange(opt);
 
+  if (xsrfToken !== null) {
+    request.setRequestHeader('X-Xsrf-Token', xsrfToken);
+  }
   request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
   request.send(makeUrl('', opt.data, true));
   request = null;
@@ -598,6 +605,10 @@ export class Nymph {
       array.reverse();
     }
     return array;
+  }
+
+  static setXsrfToken (token) {
+    xsrfToken = token;
   }
 }
 
