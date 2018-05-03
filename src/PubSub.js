@@ -215,15 +215,15 @@ export class PubSub {
                   }
                 }
               } else {
-                Nymph.getUID(data.uid).then((...args) => {
+                if (data.event === 'newUID' || data.event === 'setUID') {
                   for (let i = 0; typeof this.subscriptions.uids[data.uid] !== 'undefined' && i < this.subscriptions.uids[data.uid].length; i++) {
-                    this.subscriptions.uids[data.uid][i][0].apply(null, args);
+                    this.subscriptions.uids[data.uid][i][0].apply(null, [data.value]);
                   }
-                }, (...args) => {
+                } else {
                   for (let i = 0; typeof this.subscriptions.uids[data.uid] !== 'undefined' && i < this.subscriptions.uids[data.uid].length; i++) {
-                    this.subscriptions.uids[data.uid][i][1].apply(null, args);
+                    this.subscriptions.uids[data.uid][i][0].apply(null, [null]);
                   }
-                });
+                }
               }
             }
             if (this.rateLimit) {
