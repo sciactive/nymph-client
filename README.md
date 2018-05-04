@@ -14,60 +14,83 @@ The fastest way to start building a Nymph app is with the Nymph App Template.
 
 ### Manual Installation
 
-You can install Nymph Client with NPM.
-
 ```sh
 npm install --save nymph-client
 ```
 
-This repository is the JavaScript client for browsers. You can find UMD format modules in the /lib directory. There is also a **[Node.js client](https://github.com/sciactive/nymph-client-node)**. For more information, you can see the [main Nymph repository](https://github.com/sciactive/nymph).
+This repository is the JavaScript client for browsers. You can find UMD in `lib`, or ES modules in `src`. There is also a **[Node.js client](https://github.com/sciactive/nymph-client-node)**. For more information, you can see the [main Nymph repository](https://github.com/sciactive/nymph).
 
-## Setting up Nymph in a Browser
+## Setup
 
-<div dir="rtl">Quick Setup with NPM</div>
-
-```sh
-npm install --save nymph-client
-```
 ```html
 <head>
-  <!-- ... -->
-  NymphOptions = {
-    restURL: 'https://yournymphrestserver/path/to/your/rest.php',
-    pubsubURL: 'wss://yournymphpubsubserver:8080',
-    rateLimit: 100
-  };
+  <!-- PubSub setup: -->
+  <script>
+    NymphOptions = {
+      restURL: 'https://yournymphrestserver/path/to/your/rest.php',
+      pubsubURL: 'wss://yournymphpubsubserver:8080',
+      rateLimit: 100
+    };
+  </script>
+  <!-- End PubSub setup -->
+
+  <!-- For old school JS: -->
   <script src="node_modules/nymph-client/lib/Nymph.js"></script>
   <script src="node_modules/nymph-client/lib/Entity.js"></script>
   <script src="node_modules/nymph-client/lib/PubSub.js"></script>
+  <script src="node_modules/nymph-client/lib/NymphClient.js"></script>
   <script src="path/to/your/entity/js/Todo.js"></script>
+  <!-- End old school JS -->
 </head>
 ```
-```js
-// Now, in your module that requires Nymph...
-// (something like `import Nymph from 'Nymph';`)
 
+## Usage
+
+```js
+import {Nymph, PubSub} from 'nymph-client';
+import Todo from 'Todo';
+
+// Now you can use PubSub.
 const myTodo = new Todo();
 myTodo.set({
-  name: "This is a new todo!",
+  name: 'This is a new todo!',
   done: false
 });
 myTodo.save().then(() => {
-  alert("You've got new todos!");
+  let subscription = myTodo.subscribe(() => {
+    // When this is called, the entity will already contain new data from the
+    // publish event. If the entity is deleted, the GUID will be set to null.
+    if (myTodo.guid != null) {
+      alert('Somebody touched my todo!');
+    } else {
+      alert('Somebody deleted my todo!');
+      subscription.unsubscribe();
+    }
+  })
 });
 
 // ...
 
-let subscription = Nymph.getEntities({"class": Todo.class}, {"type": '&', "!tag": 'archived'}).subscribe((newTodos) => {
-  if (newTodos !== undefined) {
-    var todos = this.get('todos');
-    Nymph.updateArray(todos, newTodos);
-    Nymph.sort(todos, this.get('uiSort'));
-    this.set({todos: todos});
-  }
-}, null, (count) => {
-  this.set({userCount: count});
+// Make sure you start off with an empty array.
+this.setState({todos: []});
+let subscription = Nymph.getEntities({'class': Todo.class}, {'type': '&', '!tag': 'archived'}).subscribe((newTodos) => {
+  // The first time this is called, newTodos will be an array of Todo entities.
+  // After that, newTodos will be a publish event object.
+  const {todos} = this.getState();
+  // This takes an existing entity array and either updates it to match another
+  // array, or performs actions from a publish event object to update it.
+  PubSub.updateArray(todos, newTodos);
+  this.setState({todos});
+}, (err) => alert(err), (count) => {
+  // If you provide this callback, the server will send updates of how many
+  // clients are subscribed to this query.
+  this.setState({userCount});
 });
+
+// ...
+
+// Remember to clean up your subscriptions when you no longer need them.
+subscription.unsubscribe();
 ```
 
 For a thorough step by step guide to setting up Nymph on your own server, visit the [Setup Guide](https://github.com/sciactive/nymph/wiki/Setup-Guide).

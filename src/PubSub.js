@@ -95,16 +95,23 @@ export class PubSub {
       const jsonQuery = JSON.stringify(query);
 
       const newResolve = (args) => {
-        if (!args.length) {
-          this.guid = null;
-          if (resolve) {
-            resolve(this);
+        let myArray;
+        if (Array.isArray(args)) {
+          myArray = args;
+          if (myArray.length) {
+            this.init(myArray[0]);
           }
         } else {
-          this.init(args[0]);
-          if (resolve) {
-            resolve(this);
-          }
+          myArray = [this];
+          PubSub.updateArray(myArray, args);
+        }
+
+        if (!myArray.length) {
+          this.guid = null;
+        }
+
+        if (resolve) {
+          resolve(this);
         }
       };
       const callbacks = [newResolve, reject, count];
@@ -188,41 +195,29 @@ export class PubSub {
         if (!this.rateLimit || typeof this.debouncers[e.data] === 'undefined') {
           func = () => {
             data = JSON.parse(e.data);
-            if (typeof data.query !== 'undefined' && typeof this.subscriptions.queries[data.query] !== 'undefined') {
-              if (typeof data.count !== 'undefined') {
-                for (let i1 = 0; typeof this.subscriptions.queries[data.query] !== 'undefined' && i1 < this.subscriptions.queries[data.query].length; i1++) {
-                  if (typeof this.subscriptions.queries[data.query][i1][2] !== 'undefined') {
-                    this.subscriptions.queries[data.query][i1][2](data.count);
-                  }
-                }
-              } else {
-                Nymph.getEntities.apply(Nymph, JSON.parse(data.query)).then((...args) => {
-                  for (let i = 0; typeof this.subscriptions.queries[data.query] !== 'undefined' && i < this.subscriptions.queries[data.query].length; i++) {
-                    this.subscriptions.queries[data.query][i][0].apply(null, args);
-                  }
-                }, (...args) => {
-                  for (let i = 0; typeof this.subscriptions.queries[data.query] !== 'undefined' && i < this.subscriptions.queries[data.query].length; i++) {
-                    this.subscriptions.queries[data.query][i][1].apply(null, args);
-                  }
-                });
+            let val = null;
+            let subs = [];
+            if (data.hasOwnProperty('query') && typeof this.subscriptions.queries[data.query] !== 'undefined') {
+              subs = [...this.subscriptions.queries[data.query]];
+              if (!data.hasOwnProperty('count')) {
+                val = data;
+              }
+            } else if (data.hasOwnProperty('uid') && typeof this.subscriptions.uids[data.uid] !== 'undefined') {
+              subs = [...this.subscriptions.uids[data.uid]];
+              if (!data.hasOwnProperty('count') && (data.event === 'newUID' || data.event === 'setUID')) {
+                val = data.value;
               }
             }
-            if (typeof data.uid !== 'undefined' && typeof this.subscriptions.uids[data.uid] !== 'undefined') {
-              if (typeof data.count !== 'undefined') {
-                for (let i2 = 0; typeof this.subscriptions.uids[data.uid] !== 'undefined' && i2 < this.subscriptions.uids[data.uid].length; i2++) {
-                  if (typeof this.subscriptions.uids[data.uid][i2][2] !== 'undefined') {
-                    this.subscriptions.uids[data.uid][i2][2](data.count);
-                  }
+            if (data.hasOwnProperty('count')) {
+              for (let i = 0; i < subs.length; i++) {
+                if (typeof subs[i][2] !== 'undefined') {
+                  subs[i][2](data.count);
                 }
-              } else {
-                if (data.event === 'newUID' || data.event === 'setUID') {
-                  for (let i = 0; typeof this.subscriptions.uids[data.uid] !== 'undefined' && i < this.subscriptions.uids[data.uid].length; i++) {
-                    this.subscriptions.uids[data.uid][i][0].apply(null, [data.value]);
-                  }
-                } else {
-                  for (let i = 0; typeof this.subscriptions.uids[data.uid] !== 'undefined' && i < this.subscriptions.uids[data.uid].length; i++) {
-                    this.subscriptions.uids[data.uid][i][0].apply(null, [null]);
-                  }
+              }
+            } else {
+              for (let i = 0; i < subs.length; i++) {
+                if (typeof subs[i][0] !== 'undefined') {
+                  subs[i][0](val);
                 }
               }
             }
@@ -386,6 +381,99 @@ export class PubSub {
       'action': 'unsubscribe',
       'uid': name
     }));
+  }
+
+  static updateArray (oldArr, update) {
+    if (Array.isArray(update)) {
+      const newArr = [...update];
+
+      if (oldArr.length === 0) {
+        // This will happen on the first update from a subscribe.
+        oldArr.splice(0, 0, ...newArr);
+        return;
+      }
+
+      const idMap = {};
+      for (let i = 0; i < newArr.length; i++) {
+        if (newArr[i] instanceof Nymph.getEntityClass('Entity') && newArr[i].guid) {
+          idMap[newArr[i].guid] = i;
+        }
+      }
+      const remove = [];
+      for (let k in oldArr) {
+        if (k <= 4294967294 && /^0$|^[1-9]\d*$/.test(k) && oldArr.hasOwnProperty(k)) { // This handles sparse arrays.
+          k = Number(k);
+          if (typeof idMap[oldArr[k].guid] === 'undefined') {
+            // It was deleted.
+            remove.push(k);
+          } else if (newArr[idMap[oldArr[k].guid]].mdate !== oldArr[k].mdate) {
+            // It was modified.
+            oldArr[k].init(newArr[idMap[oldArr[k].guid]].toJSON());
+            delete idMap[oldArr[k].guid];
+          } else {
+            // Item wasn't modified.
+            delete idMap[oldArr[k].guid];
+          }
+        }
+      }
+      // Now we must remove the deleted ones.
+      remove.sort(function (a, b) {
+        // Sort backwards so we can remove in reverse order. (Preserves indices.)
+        if (a > b) return -1;
+        if (a < b) return 1;
+        return 0;
+      });
+      for (let n = 0; n < remove.length; n++) {
+        oldArr.splice(remove[n], 1);
+      }
+      // And add the new ones.
+      for (let v in idMap) {
+        if (idMap.hasOwnProperty(v)) {
+          oldArr.splice(oldArr.length, 0, newArr[idMap[v]]);
+        }
+      }
+    } else if (update != null && update.hasOwnProperty('query')) {
+      const query = JSON.parse(update.query);
+
+      if (update.hasOwnProperty('removed')) {
+        for (let i = 0; i < oldArr.length; i++) {
+          if (oldArr[i] != null && oldArr[i].guid === update.removed) {
+            oldArr.splice(i, 1);
+            return;
+          }
+        }
+      }
+
+      // Get the entity.
+      let entity;
+      if (update.hasOwnProperty('added')) {
+        // A new entity.
+        entity = Nymph.initEntity(update.data);
+      }
+      if (update.hasOwnProperty('updated')) {
+        // Extract it from the array.
+        for (let i = 0; i < oldArr.length; i++) {
+          if (oldArr[i] != null && oldArr[i].guid === update.updated) {
+            entity = oldArr.splice(i, 1)[0].init(update.data);
+          }
+        }
+      }
+
+      if (entity != null) {
+        // Insert the entity in order.
+        const sort = query[0].hasOwnProperty('sort') ? query[0].sort : 'cdate';
+        const reverse = query[0].hasOwnProperty('reverse') ? query[0].reverse : false;
+        let i;
+
+        if (reverse) {
+          for (i = oldArr.length; (oldArr[i] || {})[sort] < entity[sort] && i > 0; i--);
+        } else {
+          for (i = 0; (oldArr[i] || {})[sort] < entity[sort] && i < oldArr.length; i++);
+        }
+
+        oldArr.splice(i, 0, entity);
+      }
+    }
   }
 
   static setToken (token) {

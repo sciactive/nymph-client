@@ -431,49 +431,6 @@ export class Nymph {
     return this.deleteEntity(entities, true);
   }
 
-  static updateArray (oldArr, newArrIn) {
-    const newArr = Array.prototype.slice.call(newArrIn);
-    const idMap = {};
-    for (let i = 0; i < newArr.length; i++) {
-      if (newArr[i] instanceof Nymph.getEntityClass('Entity') && newArr[i].guid) {
-        idMap[newArr[i].guid] = i;
-      }
-    }
-    const remove = [];
-    for (let k in oldArr) {
-      if (k <= 4294967294 && /^0$|^[1-9]\d*$/.test(k) && oldArr.hasOwnProperty(k)) { // This handles sparse arrays.
-        k = Number(k);
-        if (typeof idMap[oldArr[k].guid] === 'undefined') {
-          // It was deleted.
-          remove.push(k);
-        } else if (newArr[idMap[oldArr[k].guid]].mdate !== oldArr[k].mdate) {
-          // It was modified.
-          oldArr[k].init(newArr[idMap[oldArr[k].guid]].toJSON());
-          delete idMap[oldArr[k].guid];
-        } else {
-          // Item wasn't modified.
-          delete idMap[oldArr[k].guid];
-        }
-      }
-    }
-    // Now we must remove the deleted ones.
-    remove.sort(function (a, b) {
-      // Sort backwards so we can remove in reverse order. (Preserves indices.)
-      if (a > b) return -1;
-      if (a < b) return 1;
-      return 0;
-    });
-    for (let n = 0; n < remove.length; n++) {
-      oldArr.splice(remove[n], 1);
-    }
-    // And add the new ones.
-    for (let v in idMap) {
-      if (idMap.hasOwnProperty(v)) {
-        oldArr.splice(oldArr.length, 0, newArr[idMap[v]]);
-      }
-    }
-  }
-
   static serverCall (entity, method, params) {
     return new Promise((resolve, reject) => {
       postputdelAjax({
