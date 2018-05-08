@@ -395,7 +395,7 @@ export class PubSub {
 
       const idMap = {};
       for (let i = 0; i < newArr.length; i++) {
-        if (newArr[i] instanceof Nymph.getEntityClass('Entity') && newArr[i].guid) {
+        if (newArr[i] instanceof Nymph.getEntityClass('\\Nymph\\Entity') && newArr[i].guid) {
           idMap[newArr[i].guid] = i;
         }
       }
