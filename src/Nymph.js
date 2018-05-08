@@ -399,24 +399,22 @@ export class Nymph {
   }
 
   static deleteEntity (entity, plural) {
-    let cur;
+    let jsonData, cur;
     if (plural) {
+      jsonData = [];
       for (let i = 0; i < entity.length; i++) {
         cur = entity[i].toJSON();
-        cur.etype = entity[i].constructor.etype;
-        entity[i] = cur;
+        jsonData.push(cur);
       }
     } else {
-      cur = entity.toJSON();
-      cur.etype = entity.constructor.etype;
-      entity = cur;
+      jsonData = entity.toJSON();
     }
     return new Promise((resolve, reject) => {
       postputdelAjax({
         type: 'DELETE',
         url: this.restURL,
         dataType: 'json',
-        data: {'action': plural ? 'entities' : 'entity', 'data': JSON.stringify(entity)},
+        data: {'action': plural ? 'entities' : 'entity', 'data': JSON.stringify(jsonData)},
         success: (data) => {
           resolve(data);
         },
