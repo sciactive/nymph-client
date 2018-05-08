@@ -1,6 +1,6 @@
 {
   "name": "nymph-client",
-  "version": "4.0.0-beta.3",
+  "version": "4.0.0-beta.4",
   "description": "Powerful object data storage and querying for collaborative web apps.",
   "main": "lib/NymphClient.js",
   "browser": "src/NymphClient.js",
