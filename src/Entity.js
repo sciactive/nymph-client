@@ -93,7 +93,7 @@ const getSleepingReference = function (item) {
       // Recurse into lower arrays.
       return map(item, getSleepingReference);
     }
-  } else if (item instanceof Object) {
+  } else if (item instanceof Object && !(item instanceof Entity)) {
     for (let k in item) {
       if (item.hasOwnProperty(k)) {
         item[k] = getSleepingReference(item[k]);
