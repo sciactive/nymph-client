@@ -19,11 +19,11 @@ const arraySortProperty = function (a, b) {
   if (parent !== null &&
       (
         (
-          a.data[parent] instanceof Nymph.getEntityClass('\\Nymph\\Entity') &&
+          a.data[parent] instanceof Nymph.getEntityClass('Nymph\\Entity') &&
           typeof (notData ? a.data[parent][property] : a.data[parent].data[property]) !== 'undefined'
         ) ||
         (
-          b.data[parent] instanceof Nymph.getEntityClass('\\Nymph\\Entity') &&
+          b.data[parent] instanceof Nymph.getEntityClass('Nymph\\Entity') &&
           typeof (notData ? b.data[parent][property] : b.data[parent].data[property]) !== 'undefined'
         )
       )
@@ -375,7 +375,7 @@ export class Nymph {
       // Recurse into lower arrays.
       return map(item, this.initEntitiesFromData.bind(this));
     } else if (item instanceof Object &&
-        !(item instanceof this.getEntityClass('\\Nymph\\Entity'))
+        !(item instanceof this.getEntityClass('Nymph\\Entity'))
     ) {
       if (item.hasOwnProperty('class') &&
           Nymph.getEntityClass(item.class) &&

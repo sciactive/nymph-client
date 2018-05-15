@@ -508,8 +508,8 @@ export class Entity {
 
 // === Static Properties ===
 
-// The name of the server class
-Entity.class = '\\Nymph\\Entity';
+// The name of the server class (Shouldn't start with a \)
+Entity.class = 'Nymph\\Entity';
 
 Nymph.setEntityClass(Entity.class, Entity);
 
