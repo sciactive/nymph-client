@@ -44,6 +44,22 @@ This repository is the JavaScript client for browsers. You can find UMD in `lib`
 </head>
 ```
 
+### Babel Config
+
+Be sure to set the global in your UMD config in Babel, if you're using Babel and UMD modules.
+
+```
+{
+  "plugins": [
+    ["transform-es2015-modules-umd", {
+      "globals": {
+        "nymph-client": "NymphClient"
+      }
+    }]
+  ]
+}
+```
+
 ## Usage
 
 ```js
