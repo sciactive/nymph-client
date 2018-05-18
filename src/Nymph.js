@@ -1,4 +1,4 @@
-/* global XMLHttpRequest, define */
+/* global XMLHttpRequest */
 'use strict';
 
 let sortProperty = null;
@@ -178,14 +178,11 @@ export class Nymph {
     if (Nymph.entityClasses.hasOwnProperty(className)) {
       return Nymph.entityClasses[className];
     }
-    if (typeof window !== 'undefined' && typeof window[className] !== 'undefined') {
+    if (typeof window !== 'undefined' &&
+        typeof window[className] !== 'undefined' &&
+        window[className] instanceof Nymph.entityClasses['Nymph\\Entity']
+    ) {
       return window[className];
-    }
-    if (typeof define === 'function' && define.amd) {
-      return require('Nymph' + className);
-    }
-    if (typeof require === 'function') {
-      return require(className);
     }
     return null;
   }
