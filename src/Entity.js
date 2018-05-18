@@ -441,11 +441,22 @@ export class Entity {
             }
           });
         } else {
-          Nymph.getEntityData({'class': this.sleepingReference[2]}, {'type': '&', 'guid': this.sleepingReference[1]}).then((data) => {
+          Nymph.getEntityData(
+            {'class': this.sleepingReference[2]},
+            {'type': '&', 'guid': this.sleepingReference[1]}
+          ).then((data) => {
             this.readyPromise = null;
-            resolve(this.init(data));
-            if (typeof success === 'function') {
-              success(this);
+            if (data === null) {
+              const errObj = {data, textStatus: 'No data returned.'};
+              reject(errObj);
+              if (typeof error === 'function') {
+                error(errObj);
+              }
+            } else {
+              resolve(this.init(data));
+              if (typeof success === 'function') {
+                success(this);
+              }
             }
           }, (errObj) => {
             this.readyPromise = null;
@@ -462,8 +473,10 @@ export class Entity {
 
   readyAll (success, error, level) {
     return new Promise((resolve, reject) => {
-      this.ready(() => {
+      const readyProps = () => {
         let newLevel;
+        // If level is undefined, keep going forever, otherwise, stop once we've
+        // gone deep enough.
         if (level !== undefined) {
           newLevel = level - 1;
         }
@@ -471,37 +484,53 @@ export class Entity {
           const promises = [];
           for (let k in this.data) {
             if (this.data.hasOwnProperty(k)) {
-              if (this.data[k] instanceof Entity) {
+              if (this.data[k] instanceof Entity && this.data[k].isASleepingReference) {
                 promises.push(this.data[k].readyAll(undefined, undefined, newLevel));
               } else if (isArray(this.data[k])) {
                 for (let i = 0; i < this.data[k].length; i++) {
-                  if (this.data[k][i] instanceof Entity) {
+                  if (this.data[k][i] instanceof Entity && this.data[k][i].isASleepingReference) {
                     promises.push(this.data[k][i].readyAll(undefined, undefined, newLevel));
                   }
                 }
               }
             }
           }
-          Promise.all(promises).then(() => {
+          if (promises.length) {
+            Promise.all(promises).then(() => {
+              resolve(this);
+              if (typeof success === 'function') {
+                success(this);
+              }
+            }, (errObj) => {
+              reject(errObj);
+              if (typeof error === 'function') {
+                error(errObj);
+              }
+            });
+          } else {
             resolve(this);
             if (typeof success === 'function') {
               success(this);
             }
-          }, (errObj) => {
-            reject(errObj);
-            if (typeof error === 'function') {
-              error(errObj);
-            }
-          });
+          }
         } else {
           resolve(this);
+          if (typeof success === 'function') {
+            success(this);
+          }
         }
-      }, (errObj) => {
-        reject(errObj);
-        if (typeof error === 'function') {
-          error(errObj);
-        }
-      });
+      };
+
+      if (this.isASleepingReference) {
+        this.ready(readyProps, (errObj) => {
+          reject(errObj);
+          if (typeof error === 'function') {
+            error(errObj);
+          }
+        });
+      } else {
+        readyProps();
+      }
     });
   }
 }
