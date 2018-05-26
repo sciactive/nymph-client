@@ -16,7 +16,7 @@ const arraySortProperty = function (a, b) {
   let property = sortProperty;
   let parent = sortParent;
   let notData = property === 'guid' || property === 'cdate' || property === 'mdate';
-  if (parent !== null &&
+  if (parent != null &&
       (
         (
           a.data[parent] instanceof Nymph.getEntityClass('Nymph\\Entity') &&
@@ -312,7 +312,11 @@ export class Nymph {
     return new Promise((resolve, reject) => {
       this.getEntityData(options, ...selectors).then((data) => {
         if (data !== null) {
-          resolve(this.initEntity(data));
+          if (options.return && options.return === 'guid') {
+            resolve(data);
+          } else {
+            resolve(this.initEntity(data));
+          }
         } else {
           resolve(null);
         }
@@ -349,7 +353,11 @@ export class Nymph {
         dataType: 'json',
         data: {'action': 'entities', 'data': JSON.stringify([options, ...selectors])},
         success: (data) => {
-          resolve(map(data, this.initEntity.bind(this)));
+          if (options.return && options.return === 'guid') {
+            resolve(data);
+          } else {
+            resolve(map(data, this.initEntity.bind(this)));
+          }
         },
         error: (errObj) => {
           reject(errObj);

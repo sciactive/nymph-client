@@ -159,7 +159,7 @@ export class Entity {
   // === Instance Methods ===
 
   init (entityData) {
-    if (typeof entityData === 'undefined' || entityData === null) {
+    if (entityData == null) {
       return this;
     }
 
