@@ -143,6 +143,11 @@ export class PubSub {
         if (typeof console !== 'undefined') {
           console.log('Nymph-PubSub connection established!');
         }
+        for (let i = 0; i < this.connectCallbacks.length; i++) {
+          if (typeof this.connectCallbacks[i] !== 'undefined') {
+            this.connectCallbacks[i]();
+          }
+        }
 
         if (authToken !== null) {
           this.connection.send(JSON.stringify({
@@ -182,6 +187,11 @@ export class PubSub {
         this.connection.onclose = (e) => {
           if (typeof console !== 'undefined') {
             console.log('Nymph-PubSub connection closed: ', e);
+          }
+          for (let i = 0; i < this.disconnectCallbacks.length; i++) {
+            if (typeof this.disconnectCallbacks[i] !== 'undefined') {
+              this.disconnectCallbacks[i]();
+            }
           }
           if (e.code !== 1000) {
             this.connection.close();
@@ -476,6 +486,25 @@ export class PubSub {
     }
   }
 
+  static on (event, callback) {
+    if (!this.hasOwnProperty(event + 'Callbacks')) {
+      return false;
+    }
+    this[event + 'Callbacks'].push(callback);
+    return true;
+  }
+
+  static off (event, callback) {
+    if (!this.hasOwnProperty(event + 'Callbacks')) {
+      return false;
+    }
+    const i = this[event + 'Callbacks'].indexOf(callback);
+    if (i > -1) {
+      this[event + 'Callbacks'].splice(i, 1);
+    }
+    return true;
+  }
+
   static setToken (token) {
     authToken = token;
     if (this.connection.readyState === WebSocket.OPEN) {
@@ -496,6 +525,8 @@ PubSub.subscriptions = {
   queries: {},
   uids: {}
 };
+PubSub.connectCallbacks = [];
+PubSub.disconnectCallbacks = [];
 
 export class PubSubSubscription {
   // === Constructor ===
