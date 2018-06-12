@@ -420,7 +420,8 @@ export class Entity {
   }
 
   ready (success, error) {
-    this.readyPromise = new Promise((resolve, reject) => {
+    let promise;
+    this.readyPromise = promise = new Promise((resolve, reject) => {
       if (!this.isASleepingReference) {
         this.readyPromise = null;
         resolve(this);
@@ -468,7 +469,7 @@ export class Entity {
         }
       }
     });
-    return this.readyPromise;
+    return promise;
   }
 
   readyAll (success, error, level) {
