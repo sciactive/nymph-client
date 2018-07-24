@@ -19,7 +19,12 @@ export class PubSub {
       this.rateLimit = NymphOptions.rateLimit;
     }
 
-    this.connect();
+    if (typeof navigator === 'undefined' || navigator.onLine) {
+      this.connect();
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => this.connect());
+    }
 
     // Override the original Nymph methods to allow subscriptions.
     let getEntities = Nymph.getEntities;
@@ -128,6 +133,11 @@ export class PubSub {
   }
 
   static connect () {
+    // Are we already connected?
+    if (this.connection && (this.connection.readyState === WebSocket.OPEN || this.connection.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+
     let timedAttemptConnect = () => {
       // Attempt to connect, wait 5 seconds, then check and attempt again if unsuccessful.
       setTimeout(() => {
@@ -193,7 +203,7 @@ export class PubSub {
               this.disconnectCallbacks[i]();
             }
           }
-          if (e.code !== 1000) {
+          if (!navigator || navigator.onLine) {
             this.connection.close();
             timedAttemptConnect();
           }
@@ -246,6 +256,7 @@ export class PubSub {
         this.debouncers[e.data]();
       };
     };
+
     timedAttemptConnect();
   }
 
