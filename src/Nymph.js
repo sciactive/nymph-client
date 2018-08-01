@@ -102,6 +102,11 @@ const filterPhpMessages = function (text) {
 const onReadyStateChange = function (opt) {
   return function () {
     if (this.readyState === 4) {
+      for (let i = 0; i < Nymph.responseCallbacks.length; i++) {
+        if (typeof Nymph.responseCallbacks[i] !== 'undefined') {
+          Nymph.responseCallbacks[i](this);
+        }
+      }
       if (this.status >= 200 && this.status < 400) {
         const response = filterPhpMessages(this.responseText);
         if (opt.dataType === 'json') {
@@ -567,6 +572,25 @@ export class Nymph {
     return array;
   }
 
+  static on (event, callback) {
+    if (!this.hasOwnProperty(event + 'Callbacks')) {
+      return false;
+    }
+    this[event + 'Callbacks'].push(callback);
+    return true;
+  }
+
+  static off (event, callback) {
+    if (!this.hasOwnProperty(event + 'Callbacks')) {
+      return false;
+    }
+    const i = this[event + 'Callbacks'].indexOf(callback);
+    if (i > -1) {
+      this[event + 'Callbacks'].splice(i, 1);
+    }
+    return true;
+  }
+
   static setXsrfToken (token) {
     xsrfToken = token;
   }
@@ -577,6 +601,7 @@ export class Nymph {
 // The current version of Nymph Client.
 Nymph.version = '4.0.0-beta.12';
 Nymph.entityClasses = {};
+Nymph.responseCallbacks = [];
 
 // === Error Classes ===
 
