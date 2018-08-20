@@ -288,7 +288,7 @@ export class PubSub {
     }
     let isCountSubscribed = isNewSubscription || this._isCountSubscribedQuery(query);
     this.subscriptions.queries[query].push(callbacks);
-    if (this.connection.readyState === WebSocket.OPEN) {
+    if (this.connection && this.connection.readyState === WebSocket.OPEN) {
       if (isNewSubscription) {
         this._subscribeQuery(query, typeof callbacks[2] !== 'undefined');
       } else if (!isCountSubscribed && callbacks[2] !== 'undefined') {
@@ -306,7 +306,7 @@ export class PubSub {
     }
     let isCountSubscribed = isNewSubscription || this._isCountSubscribedUID(name);
     this.subscriptions.uids[name].push(callbacks);
-    if (this.connection.readyState === WebSocket.OPEN) {
+    if (this.connection && this.connection.readyState === WebSocket.OPEN) {
       if (isNewSubscription) {
         this._subscribeUID(name, typeof callbacks[2] !== 'undefined');
       } else if (!isCountSubscribed && callbacks[2] !== 'undefined') {
@@ -367,7 +367,7 @@ export class PubSub {
     this.subscriptions.queries[query].splice(idx, 1);
     if (!this.subscriptions.queries[query].length) {
       delete this.subscriptions.queries[query];
-      if (this.connection.readyState === WebSocket.OPEN) {
+      if (this.connection && this.connection.readyState === WebSocket.OPEN) {
         this._unsubscribeQuery(query);
       }
     }
@@ -384,7 +384,7 @@ export class PubSub {
     this.subscriptions.uids[name].splice(idx, 1);
     if (!this.subscriptions.uids[name].length) {
       delete this.subscriptions.uids[name];
-      if (this.connection.readyState === WebSocket.OPEN) {
+      if (this.connection && this.connection.readyState === WebSocket.OPEN) {
         this._unsubscribeUID(name);
       }
     }
