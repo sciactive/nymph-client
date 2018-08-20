@@ -518,7 +518,7 @@ export class PubSub {
 
   static setToken (token) {
     authToken = token;
-    if (this.connection.readyState === WebSocket.OPEN) {
+    if (this.connection && this.connection.readyState === WebSocket.OPEN) {
       this.connection.send(JSON.stringify({
         'action': 'authenticate',
         'token': authToken
