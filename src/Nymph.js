@@ -599,7 +599,7 @@ export class Nymph {
 // === Static Properties ===
 
 // The current version of Nymph Client.
-Nymph.version = '4.0.0-beta.14';
+Nymph.version = '4.0.0-beta.15';
 Nymph.entityClasses = {};
 Nymph.responseCallbacks = [];
 
