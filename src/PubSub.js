@@ -487,7 +487,7 @@ export class PubSub {
         let i;
 
         if (reverse) {
-          for (i = oldArr.length; (oldArr[i] || {})[sort] < entity[sort] && i > 0; i--);
+          for (i = 0; (oldArr[i] || {})[sort] >= entity[sort] && i < oldArr.length; i++);
         } else {
           for (i = 0; (oldArr[i] || {})[sort] < entity[sort] && i < oldArr.length; i++);
         }
