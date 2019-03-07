@@ -472,6 +472,8 @@ export class Entity {
     return promise;
   }
 
+  // Please note that the success callback may be run immediately. If you need
+  // your callback to be deferred, you should use the returned promise instead.
   readyAll (success, error, level) {
     return new Promise((resolve, reject) => {
       const readyProps = () => {
