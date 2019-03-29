@@ -1,29 +1,26 @@
-/* global WebSocket */
+/* global self */
 'use strict';
 
-import {Nymph} from './Nymph';
-import {Entity} from './Entity';
+import { Nymph } from './Nymph';
+import { Entity } from './Entity';
 
+let root = (window || self);
 let authToken = null;
 
-if (typeof WebSocket === 'undefined') {
+if (!('WebSocket' in root)) {
   throw new Error('Nymph-PubSub requires WebSocket!');
 }
+
+const WebSocket = root.WebSocket;
 
 export class PubSub {
   // === Static Methods ===
 
   static init (NymphOptions) {
     this.pubsubURL = NymphOptions.pubsubURL;
-    if (NymphOptions.rateLimit) {
-      this.rateLimit = NymphOptions.rateLimit;
-    }
-
-    if (typeof navigator === 'undefined' || navigator.onLine) {
+    window && window.addEventListener('online', () => this.connect());
+    if (!navigator || navigator.onLine) {
       this.connect();
-    }
-    if (typeof window !== 'undefined') {
-      window.addEventListener('online', () => this.connect());
     }
 
     // Override the original Nymph methods to allow subscriptions.
@@ -52,7 +49,7 @@ export class PubSub {
       options.limit = 1;
       promise.query = JSON.stringify([options, ...selectors]);
       promise.subscribe = (resolve, reject, count) => {
-        const newResolve = (args) => {
+        const newResolve = args => {
           if (!args.length) {
             if (resolve) {
               resolve(null);
@@ -96,10 +93,10 @@ export class PubSub {
       if (!this.guid) {
         return false;
       }
-      const query = [{'class': this.constructor.class, 'limit': 1}, {type: '&', guid: this.guid}];
+      const query = [{ 'class': this.constructor.class, 'limit': 1 }, { type: '&', guid: this.guid }];
       const jsonQuery = JSON.stringify(query);
 
-      const newResolve = (args) => {
+      const newResolve = args => {
         let myArray;
         if (Array.isArray(args)) {
           myArray = args;
@@ -122,11 +119,9 @@ export class PubSub {
       const callbacks = [newResolve, reject, count];
 
       PubSub.subscribeQuery(jsonQuery, callbacks);
-      return {
-        unsubscribe: () => {
-          PubSub.unsubscribeQuery(jsonQuery, callbacks);
-        }
-      };
+      return new PubSubSubscription(jsonQuery, callbacks, () => {
+        PubSub.unsubscribeQuery(jsonQuery, callbacks);
+      });
     };
 
     return this;
@@ -138,160 +133,130 @@ export class PubSub {
       return;
     }
 
-    let timedAttemptConnect = () => {
-      // Attempt to connect, wait 5 seconds, then check and attempt again if unsuccessful.
-      setTimeout(() => {
-        if (this.connection.readyState !== WebSocket.OPEN) {
-          this.connection.close();
-          timedAttemptConnect();
-        }
-      }, 5000);
-
-      this.connection = new WebSocket(this.pubsubURL);
-
-      this.connection.onopen = () => {
-        if (typeof console !== 'undefined') {
-          console.log('Nymph-PubSub connection established!');
-        }
-        for (let i = 0; i < this.connectCallbacks.length; i++) {
-          if (typeof this.connectCallbacks[i] !== 'undefined') {
-            this.connectCallbacks[i]();
-          }
-        }
-
-        if (authToken !== null) {
-          this.connection.send(JSON.stringify({
-            'action': 'authenticate',
-            'token': authToken
-          }));
-        }
-
-        for (let query in this.subscriptions.queries) {
-          if (!this.subscriptions.queries.hasOwnProperty(query)) {
-            continue;
-          }
-          let count = false;
-          for (let callbacks = 0; callbacks < this.subscriptions.queries[query].length; callbacks++) {
-            if (typeof this.subscriptions.queries[query][callbacks][2] !== 'undefined') {
-              count = true;
-              break;
-            }
-          }
-          this._subscribeQuery(query, count);
-        }
-
-        for (let name in this.subscriptions.uids) {
-          if (!this.subscriptions.uids.hasOwnProperty(name)) {
-            continue;
-          }
-          let count = false;
-          for (let callbacks = 0; callbacks < this.subscriptions.uids[name].length; callbacks++) {
-            if (typeof this.subscriptions.uids[name][callbacks][2] !== 'undefined') {
-              count = true;
-              break;
-            }
-          }
-          this._subscribeUID(name, count);
-        }
-
-        this.connection.onclose = (e) => {
-          if (typeof console !== 'undefined') {
-            console.log('Nymph-PubSub connection closed: ', e);
-          }
-          for (let i = 0; i < this.disconnectCallbacks.length; i++) {
-            if (typeof this.disconnectCallbacks[i] !== 'undefined') {
-              this.disconnectCallbacks[i]();
-            }
-          }
-          if (!navigator || navigator.onLine) {
-            this.connection.close();
-            timedAttemptConnect();
-          }
-        };
-      };
-
-      this.connection.onmessage = (e) => {
-        let func, data;
-        if (!this.rateLimit || typeof this.debouncers[e.data] === 'undefined') {
-          func = () => {
-            data = JSON.parse(e.data);
-            let val = null;
-            let subs = [];
-            if (data.hasOwnProperty('query') && typeof this.subscriptions.queries[data.query] !== 'undefined') {
-              subs = [...this.subscriptions.queries[data.query]];
-              if (!data.hasOwnProperty('count')) {
-                val = data;
-              }
-            } else if (data.hasOwnProperty('uid') && typeof this.subscriptions.uids[data.uid] !== 'undefined') {
-              subs = [...this.subscriptions.uids[data.uid]];
-              if (!data.hasOwnProperty('count') && (data.event === 'newUID' || data.event === 'setUID')) {
-                val = data.value;
-              }
-            }
-            if (data.hasOwnProperty('count')) {
-              for (let i = 0; i < subs.length; i++) {
-                if (typeof subs[i][2] !== 'undefined') {
-                  subs[i][2](data.count);
-                }
-              }
-            } else {
-              for (let i = 0; i < subs.length; i++) {
-                if (typeof subs[i][0] !== 'undefined') {
-                  subs[i][0](val);
-                }
-              }
-            }
-            if (this.rateLimit) {
-              delete this.debouncers[e.data];
-            }
-          };
-        }
-        if (!this.rateLimit) {
-          func();
-          return;
-        }
-        if (typeof this.debouncers[e.data] === 'undefined') {
-          this.debouncers[e.data] = this.debounce(func);
-        }
-        this.debouncers[e.data]();
-      };
-    };
-
-    timedAttemptConnect();
+    this._waitForConnection();
+    this._attemptConnect();
   }
 
-  static debounce (func, immediate) {
-    let timeout;
-    let that = this;
-    return function (...args) {
-      const context = this;
-      const later = () => {
-        timeout = null;
-        if (!immediate) {
-          func.apply(context, args);
+  static _waitForConnection (attempts = 0) {
+    // Wait 5 seconds, then check and attempt connection again if
+    // unsuccessful. Keep repeating until successful.
+    setTimeout(() => {
+      if (this.connection.readyState !== WebSocket.OPEN) {
+        if (this.connection.readyState !== WebSocket.CONNECTING || attempts >= 5) {
+          this.connection.close();
+          this._waitForConnection();
+          this._attemptConnect();
+        } else {
+          this._waitForConnection(attempts + 1);
         }
-      };
-      const callNow = immediate && !timeout;
-      clearTimeout(timeout);
-      timeout = setTimeout(later, that.rateLimit);
-      if (callNow) {
-        func.apply(context, args);
       }
-    };
+    }, 5000);
+  }
+
+  static _attemptConnect () {
+    // Attempt to connect.
+    this.connection = new WebSocket(this.pubsubURL);
+    this.connection.onopen = this._onopen.bind(this);
+    this.connection.onmessage = this._onmessage.bind(this);
+  }
+
+  static _onopen () {
+    root.console && root.console.log('Nymph-PubSub connection established!');
+    for (let i = 0; i < this.connectCallbacks.length; i++) {
+      this.connectCallbacks[i] && this.connectCallbacks[i]();
+    }
+
+    if (authToken != null) {
+      this._send({
+        'action': 'authenticate',
+        'token': authToken
+      });
+    }
+
+    for (let query in this.subscriptions.queries) {
+      if (!this.subscriptions.queries.hasOwnProperty(query)) {
+        continue;
+      }
+      let count = false;
+      for (let callbacks = 0; callbacks < this.subscriptions.queries[query].length; callbacks++) {
+        if (this.subscriptions.queries[query][callbacks][2]) {
+          count = true;
+          break;
+        }
+      }
+      this._subscribeQuery(query, count);
+    }
+
+    for (let name in this.subscriptions.uids) {
+      if (!this.subscriptions.uids.hasOwnProperty(name)) {
+        continue;
+      }
+      let count = false;
+      for (let callbacks = 0; callbacks < this.subscriptions.uids[name].length; callbacks++) {
+        if (this.subscriptions.uids[name][callbacks][2]) {
+          count = true;
+          break;
+        }
+      }
+      this._subscribeUID(name, count);
+    }
+
+    this.connection.onclose = this._onclose.bind(this);
+  }
+
+  static _onmessage (e) {
+    let data = JSON.parse(e.data);
+    let val = null;
+    let subs = [];
+    let count = data.hasOwnProperty('count');
+    if (data.hasOwnProperty('query') && this.subscriptions.queries.hasOwnProperty(data.query)) {
+      subs = [...this.subscriptions.queries[data.query]];
+      if (!count) {
+        val = data;
+      }
+    } else if (data.hasOwnProperty('uid') && this.subscriptions.uids.hasOwnProperty(data.uid)) {
+      subs = [...this.subscriptions.uids[data.uid]];
+      if (!count && (data.event === 'newUID' || data.event === 'setUID')) {
+        val = data.value;
+      }
+    }
+    for (let i = 0; i < subs.length; i++) {
+      subs[i][count ? 2 : 0] && subs[i][count ? 2 : 0](count ? data.count : val);
+    }
+  }
+
+  static _onclose (e) {
+    root.console && root.console.log('Nymph-PubSub connection closed: ', e);
+    for (let i = 0; i < this.disconnectCallbacks.length; i++) {
+      this.disconnectCallbacks[i] && this.disconnectCallbacks[i]();
+    }
+    if (!navigator || navigator.onLine) {
+      this.connection.close();
+      this._waitForConnection();
+      this._attemptConnect();
+    }
+  }
+
+  static _send (data) {
+    this.connection.send(JSON.stringify(data));
+  }
+
+  static isConnectionOpen () {
+    return this.connection && this.connection.readyState === WebSocket.OPEN;
   }
 
   static subscribeQuery (query, callbacks) {
     let isNewSubscription = false;
-    if (typeof this.subscriptions.queries[query] === 'undefined') {
+    if (!this.subscriptions.queries.hasOwnProperty(query)) {
       this.subscriptions.queries[query] = [];
       isNewSubscription = true;
     }
-    let isCountSubscribed = isNewSubscription || this._isCountSubscribedQuery(query);
+    let isCountSubscribed = isNewSubscription ? false : this._isCountSubscribedQuery(query);
     this.subscriptions.queries[query].push(callbacks);
-    if (this.connection && this.connection.readyState === WebSocket.OPEN) {
+    if (this.isConnectionOpen()) {
       if (isNewSubscription) {
-        this._subscribeQuery(query, typeof callbacks[2] !== 'undefined');
-      } else if (!isCountSubscribed && callbacks[2] !== 'undefined') {
+        this._subscribeQuery(query, !!callbacks[2]);
+      } else if (!isCountSubscribed && callbacks[2]) {
         this._unsubscribeQuery(query);
         this._subscribeQuery(query, true);
       }
@@ -300,16 +265,16 @@ export class PubSub {
 
   static subscribeUID (name, callbacks) {
     let isNewSubscription = false;
-    if (typeof this.subscriptions.uids[name] === 'undefined') {
+    if (!this.subscriptions.uids.hasOwnProperty(name)) {
       this.subscriptions.uids[name] = [];
       isNewSubscription = true;
     }
-    let isCountSubscribed = isNewSubscription || this._isCountSubscribedUID(name);
+    let isCountSubscribed = isNewSubscription ? false : this._isCountSubscribedUID(name);
     this.subscriptions.uids[name].push(callbacks);
-    if (this.connection && this.connection.readyState === WebSocket.OPEN) {
+    if (this.isConnectionOpen()) {
       if (isNewSubscription) {
-        this._subscribeUID(name, typeof callbacks[2] !== 'undefined');
-      } else if (!isCountSubscribed && callbacks[2] !== 'undefined') {
+        this._subscribeUID(name, !!callbacks[2]);
+      } else if (!isCountSubscribed && callbacks[2]) {
         this._unsubscribeUID(name);
         this._subscribeUID(name, true);
       }
@@ -317,27 +282,27 @@ export class PubSub {
   }
 
   static _subscribeQuery (query, count) {
-    this.connection.send(JSON.stringify({
+    this._send({
       'action': 'subscribe',
       'query': query,
       'count': count
-    }));
+    });
   }
 
   static _subscribeUID (name, count) {
-    this.connection.send(JSON.stringify({
+    this._send({
       'action': 'subscribe',
       'uid': name,
       'count': count
-    }));
+    });
   }
 
   static _isCountSubscribedQuery (query) {
-    if (typeof this.subscriptions.queries[query] === 'undefined') {
+    if (!this.subscriptions.queries.hasOwnProperty(query)) {
       return false;
     }
     for (let callbacks = 0; callbacks < this.subscriptions.queries[query].length; callbacks++) {
-      if (typeof this.subscriptions.queries[query][callbacks][2] !== 'undefined') {
+      if (this.subscriptions.queries[query][callbacks][2]) {
         return true;
       }
     }
@@ -345,11 +310,11 @@ export class PubSub {
   }
 
   static _isCountSubscribedUID (name) {
-    if (typeof this.subscriptions.uids[name] === 'undefined') {
+    if (!this.subscriptions.uids.hasOwnProperty(name)) {
       return false;
     }
     for (let callbacks = 0; callbacks < this.subscriptions.uids[name].length; callbacks++) {
-      if (typeof this.subscriptions.uids[name][callbacks][2] !== 'undefined') {
+      if (this.subscriptions.uids[name][callbacks][2]) {
         return true;
       }
     }
@@ -357,7 +322,7 @@ export class PubSub {
   }
 
   static unsubscribeQuery (query, callbacks) {
-    if (typeof this.subscriptions.queries[query] === 'undefined') {
+    if (!this.subscriptions.queries.hasOwnProperty(query)) {
       return;
     }
     const idx = this.subscriptions.queries[query].indexOf(callbacks);
@@ -367,14 +332,14 @@ export class PubSub {
     this.subscriptions.queries[query].splice(idx, 1);
     if (!this.subscriptions.queries[query].length) {
       delete this.subscriptions.queries[query];
-      if (this.connection && this.connection.readyState === WebSocket.OPEN) {
+      if (this.isConnectionOpen()) {
         this._unsubscribeQuery(query);
       }
     }
   }
 
   static unsubscribeUID (name, callbacks) {
-    if (typeof this.subscriptions.uids[name] === 'undefined') {
+    if (!this.subscriptions.uids.hasOwnProperty(name)) {
       return;
     }
     const idx = this.subscriptions.uids[name].indexOf(callbacks);
@@ -384,24 +349,24 @@ export class PubSub {
     this.subscriptions.uids[name].splice(idx, 1);
     if (!this.subscriptions.uids[name].length) {
       delete this.subscriptions.uids[name];
-      if (this.connection && this.connection.readyState === WebSocket.OPEN) {
+      if (this.isConnectionOpen()) {
         this._unsubscribeUID(name);
       }
     }
   }
 
   static _unsubscribeQuery (query) {
-    this.connection.send(JSON.stringify({
+    this._send({
       'action': 'unsubscribe',
       'query': query
-    }));
+    });
   }
 
   static _unsubscribeUID (name) {
-    this.connection.send(JSON.stringify({
+    this._send({
       'action': 'unsubscribe',
       'uid': name
-    }));
+    });
   }
 
   static updateArray (oldArr, update) {
@@ -424,7 +389,7 @@ export class PubSub {
       for (let k in oldArr) {
         if (k <= 4294967294 && /^0$|^[1-9]\d*$/.test(k) && oldArr.hasOwnProperty(k)) { // This handles sparse arrays.
           k = Number(k);
-          if (typeof idMap[oldArr[k].guid] === 'undefined') {
+          if (!idMap.hasOwnProperty(oldArr[k].guid)) {
             // It was deleted.
             remove.push(k);
           } else if (newArr[idMap[oldArr[k].guid]].mdate !== oldArr[k].mdate) {
@@ -439,7 +404,8 @@ export class PubSub {
       }
       // Now we must remove the deleted ones.
       remove.sort(function (a, b) {
-        // Sort backwards so we can remove in reverse order. (Preserves indices.)
+        // Sort backwards so we can remove in reverse order. (Preserves
+        // indices.)
         if (a > b) return -1;
         if (a < b) return 1;
         return 0;
@@ -454,8 +420,6 @@ export class PubSub {
         }
       }
     } else if (update != null && update.hasOwnProperty('query')) {
-      const query = JSON.parse(update.query);
-
       if (update.hasOwnProperty('removed')) {
         for (let i = 0; i < oldArr.length; i++) {
           if (oldArr[i] != null && oldArr[i].guid === update.removed) {
@@ -480,6 +444,7 @@ export class PubSub {
         }
       }
 
+      const query = JSON.parse(update.query);
       if (entity != null) {
         // Insert the entity in order.
         const sort = query[0].hasOwnProperty('sort') ? query[0].sort : 'cdate';
@@ -518,11 +483,11 @@ export class PubSub {
 
   static setToken (token) {
     authToken = token;
-    if (this.connection && this.connection.readyState === WebSocket.OPEN) {
-      this.connection.send(JSON.stringify({
+    if (this.isConnectionOpen()) {
+      this._send({
         'action': 'authenticate',
         'token': authToken
-      }));
+      });
     }
   }
 }
@@ -530,8 +495,6 @@ export class PubSub {
 // === Static Properties ===
 PubSub.connection = null;
 PubSub.pubsubURL = null;
-PubSub.rateLimit = null;
-PubSub.debouncers = {};
 PubSub.subscriptions = {
   queries: {},
   uids: {}
@@ -551,8 +514,8 @@ export class PubSubSubscription {
   }
 }
 
-if (typeof window !== 'undefined' && typeof window.NymphOptions !== 'undefined' && typeof window.NymphOptions.pubsubURL !== 'undefined') {
-  PubSub.init(window.NymphOptions);
+if ('NymphOptions' in root && root.NymphOptions.pubsubURL) {
+  PubSub.init(root.NymphOptions);
 }
 
 export default PubSub;

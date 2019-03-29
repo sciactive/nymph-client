@@ -28,8 +28,7 @@ This repository is the JavaScript client for browsers. You can find UMD in `lib`
   <script>
     NymphOptions = {
       restURL: 'https://yournymphrestserver/path/to/your/rest.php',
-      pubsubURL: 'wss://yournymphpubsubserver:8080',
-      rateLimit: 100
+      pubsubURL: 'wss://yournymphpubsubserver:8080'
     };
   </script>
   <!-- End PubSub setup -->

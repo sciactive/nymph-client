@@ -1,123 +1,9 @@
 'use strict';
 
-import {Nymph, NymphClassNotAvailableError} from './Nymph';
+import { Nymph } from './Nymph';
+import { uniqueStrings, getDataReference, getSleepingReference, sortObj } from './utils';
 
 const sleepErr = 'This entity is in a sleeping reference state. You must use .ready().then() to wake it.';
-
-const isArray = (Array.isArray || function (arr) {
-  return Object.prototype.toString.call(arr) === '[object Array]';
-});
-
-const indexOf = function (array, item) {
-  for (let i = 0; i < array.length; i++) {
-    if (array[i] === item) {
-      return i;
-    }
-  }
-  return -1;
-};
-
-const map = function (arr, fn) {
-  const results = [];
-  for (let i = 0; i < arr.length; i++) {
-    results.push(fn(arr[i], i));
-  }
-  return results;
-};
-
-const arrayUnique = function (array) {
-  let a = array.concat();
-  for (let i = 0; i < a.length; ++i) {
-    for (let j = i + 1; j < a.length; ++j) {
-      if (a[i] === a[j]) {
-        a.splice(j--, 1);
-      }
-    }
-  }
-  return a;
-};
-
-const onlyStrings = function (array) {
-  const newArray = [];
-  for (let i = 0; i < array.length; i++) {
-    if (typeof array[i] === 'string') {
-      newArray.push(array[i]);
-    } else {
-      if (typeof array[i].toString === 'function') {
-        newArray.push(array[i].toString());
-      }
-    }
-  }
-  return newArray;
-};
-
-const getDataReference = function (item) {
-  if (item instanceof Entity && typeof item.toReference === 'function') {
-    // Convert entities to references.
-    return item.toReference();
-  } else if (isArray(item)) {
-    // Recurse into lower arrays.
-    return map(item, getDataReference);
-  } else if (item instanceof Object) {
-    let newObj;
-    if (Object.create) {
-      newObj = Object.create(item);
-    } else {
-      const F = function () {};
-      F.prototype = item;
-      newObj = new F();
-    }
-    for (let k in item) {
-      if (item.hasOwnProperty(k)) {
-        newObj[k] = getDataReference(item[k]);
-      }
-    }
-    return newObj;
-  }
-  // Not an entity or array, just return it.
-  return item;
-};
-
-const getSleepingReference = function (item) {
-  if (isArray(item)) {
-    // Check if it's a reference.
-    if (item[0] === 'nymph_entity_reference') {
-      const EntityClass = Nymph.getEntityClass(item[2]);
-      if (!EntityClass) {
-        throw new NymphClassNotAvailableError(item[2] + ' class cannot be found.');
-      }
-      const entity = new (EntityClass)();
-      entity.referenceSleep(item);
-      return entity;
-    } else {
-      // Recurse into lower arrays.
-      return map(item, getSleepingReference);
-    }
-  } else if (item instanceof Object && !(item instanceof Entity)) {
-    for (let k in item) {
-      if (item.hasOwnProperty(k)) {
-        item[k] = getSleepingReference(item[k]);
-      }
-    }
-  }
-  // Not an array, just return it.
-  return item;
-};
-
-const sortObj = function (obj) { // adapted from http://am.aurlien.net/post/1221493460/sorting-javascript-objects
-  const tempArray = [];
-  for (let key in obj) {
-    if (obj.hasOwnProperty(key)) {
-      tempArray.push(key);
-    }
-  }
-  tempArray.sort();
-  const tempObj = {};
-  for (let i = 0; i < tempArray.length; i++) {
-    tempObj[tempArray[i]] = obj[tempArray[i]];
-  }
-  return tempObj;
-};
 
 export class Entity {
   // === Constructor ===
@@ -147,13 +33,7 @@ export class Entity {
   static serverCallStatic (method, params) {
     // Turn the params into a real array, in case an arguments object was passed.
     const paramArray = Array.prototype.slice.call(params);
-    return new Promise((resolve, reject) => {
-      Nymph.serverCallStatic(this.class, method, paramArray).then((data) => {
-        resolve(data.return);
-      }, (errObj) => {
-        reject(errObj);
-      });
-    });
+    return Nymph.serverCallStatic(this.class, method, paramArray).then(data => data.return);
   }
 
   // === Instance Methods ===
@@ -187,21 +67,21 @@ export class Entity {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
-    if (isArray(tags[0])) {
+    if (Array.isArray(tags[0])) {
       tags = tags[0];
     }
-    this.tags = onlyStrings(arrayUnique(this.tags.concat(tags)));
+    this.tags = uniqueStrings(this.tags.concat(tags));
   }
 
   hasTag (...tags) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
-    if (isArray(tags[0])) {
+    if (Array.isArray(tags[0])) {
       tags = tags[0];
     }
     for (let i = 0; i < tags.length; i++) {
-      if (indexOf(this.tags, tags[i]) === -1) {
+      if (this.tags.indexOf(tags[i]) === -1) {
         return false;
       }
     }
@@ -213,11 +93,11 @@ export class Entity {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
     const newTags = [];
-    if (isArray(tags[0])) {
+    if (Array.isArray(tags[0])) {
       tags = tags[0];
     }
     for (let i = 0; i < this.tags.length; i++) {
-      if (indexOf(tags, this.tags[i]) === -1) {
+      if (tags.indexOf(this.tags[i]) === -1) {
         newTags.push(this.tags[i]);
       }
     }
@@ -229,7 +109,7 @@ export class Entity {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
-    if (isArray(name)) {
+    if (Array.isArray(name)) {
       const result = {};
       for (let i = 0; i < name.length; i++) {
         result[name[i]] = this.data[name[i]];
@@ -322,7 +202,7 @@ export class Entity {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
-    if (!isArray(array)) {
+    if (!Array.isArray(array)) {
       return false;
     }
     for (let i = 0; i < array.length; i++) {
@@ -337,7 +217,7 @@ export class Entity {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
-    if (!isArray(array)) {
+    if (!Array.isArray(array)) {
       return false;
     }
     for (let i = 0; i < array.length; i++) {
@@ -352,18 +232,15 @@ export class Entity {
     if (this.isASleepingReference) {
       return this.ready();
     }
-    if (this.guid === null) {
-      return new Promise((resolve) => {
-        resolve(this);
-      });
+    if (this.guid == null) {
+      return Promise.resolve(this);
     }
-    return new Promise((resolve, reject) => {
-      Nymph.getEntityData({'class': this.constructor.class}, {'type': '&', 'guid': this.guid}).then((data) => {
-        resolve(this.init(data));
-      }, (errObj) => {
-        reject(errObj);
-      });
-    });
+    return Nymph.getEntityData({
+      'class': this.constructor.class
+    }, {
+      'type': '&',
+      'guid': this.guid
+    }).then(data => this.init(data));
   }
 
   serverCall (method, params, dontUpdateAfterCall) {
@@ -372,15 +249,11 @@ export class Entity {
     }
     // Turn the params into a real array, in case an arguments object was passed.
     const paramArray = Array.prototype.slice.call(params);
-    return new Promise((resolve, reject) => {
-      Nymph.serverCall(this, method, paramArray).then((data) => {
-        if (!dontUpdateAfterCall) {
-          this.init(data.entity);
-        }
-        resolve(data.return);
-      }, (errObj) => {
-        reject(errObj);
-      });
+    return Nymph.serverCall(this, method, paramArray).then(data => {
+      if (!dontUpdateAfterCall) {
+        this.init(data.entity);
+      }
+      return data.return;
     });
   }
 
@@ -407,7 +280,7 @@ export class Entity {
     if (this.isASleepingReference) {
       return this.sleepingReference;
     }
-    if (this.guid === null) {
+    if (this.guid == null) {
       return this;
     }
     return ['nymph_entity_reference', this.guid, this.constructor.class];
@@ -419,63 +292,31 @@ export class Entity {
     this.sleepingReference = [...reference];
   }
 
-  ready (success, error) {
-    let promise;
-    this.readyPromise = promise = new Promise((resolve, reject) => {
-      if (!this.isASleepingReference) {
+  ready () {
+    if (!this.isASleepingReference) {
+      this.readyPromise = null;
+      return Promise.resolve(this);
+    }
+    if (!this.readyPromise) {
+      this.readyPromise = Nymph.getEntityData(
+        { 'class': this.sleepingReference[2] },
+        { 'type': '&', 'guid': this.sleepingReference[1] }
+      ).then(data => {
+        if (data == null) {
+          const errObj = { data, textStatus: 'No data returned.' };
+          return Promise.reject(errObj);
+        }
+        return this.init(data);
+      }).finally(() => {
         this.readyPromise = null;
-        resolve(this);
-        if (typeof success === 'function') {
-          success(this);
-        }
-      } else {
-        if (this.readyPromise) {
-          this.readyPromise.then(() => {
-            resolve(this);
-            if (typeof success === 'function') {
-              success(this);
-            }
-          }, (errObj) => {
-            reject(errObj);
-            if (typeof error === 'function') {
-              error(errObj);
-            }
-          });
-        } else {
-          Nymph.getEntityData(
-            {'class': this.sleepingReference[2]},
-            {'type': '&', 'guid': this.sleepingReference[1]}
-          ).then((data) => {
-            this.readyPromise = null;
-            if (data === null) {
-              const errObj = {data, textStatus: 'No data returned.'};
-              reject(errObj);
-              if (typeof error === 'function') {
-                error(errObj);
-              }
-            } else {
-              resolve(this.init(data));
-              if (typeof success === 'function') {
-                success(this);
-              }
-            }
-          }, (errObj) => {
-            this.readyPromise = null;
-            reject(errObj);
-            if (typeof error === 'function') {
-              error(errObj);
-            }
-          });
-        }
-      }
-    });
-    return promise;
+      });
+    }
+    return this.readyPromise;
   }
 
-  // Please note that the success callback may be run immediately. If you need
-  // your callback to be deferred, you should use the returned promise instead.
-  readyAll (success, error, level) {
+  readyAll (level) {
     return new Promise((resolve, reject) => {
+      // Run this once this entity is ready.
       const readyProps = () => {
         let newLevel;
         // If level is undefined, keep going forever, otherwise, stop once we've
@@ -483,54 +324,38 @@ export class Entity {
         if (level !== undefined) {
           newLevel = level - 1;
         }
-        if (newLevel === undefined || newLevel >= 0) {
-          const promises = [];
-          for (let k in this.data) {
-            if (this.data.hasOwnProperty(k)) {
-              if (this.data[k] instanceof Entity && this.data[k].isASleepingReference) {
-                promises.push(this.data[k].readyAll(undefined, undefined, newLevel));
-              } else if (isArray(this.data[k])) {
-                for (let i = 0; i < this.data[k].length; i++) {
-                  if (this.data[k][i] instanceof Entity && this.data[k][i].isASleepingReference) {
-                    promises.push(this.data[k][i].readyAll(undefined, undefined, newLevel));
-                  }
-                }
+        if (newLevel !== undefined && newLevel < 0) {
+          resolve(this);
+          return;
+        }
+        const promises = [];
+        // Go through data looking for entities to ready.
+        for (let k in this.data) {
+          if (!this.data.hasOwnProperty(k)) {
+            continue;
+          }
+          if (this.data[k] instanceof Entity && this.data[k].isASleepingReference) {
+            promises.push(this.data[k].readyAll(newLevel));
+          } else if (Array.isArray(this.data[k])) {
+            for (let i = 0; i < this.data[k].length; i++) {
+              if (this.data[k][i] instanceof Entity && this.data[k][i].isASleepingReference) {
+                promises.push(this.data[k][i].readyAll(newLevel));
               }
             }
           }
-          if (promises.length) {
-            Promise.all(promises).then(() => {
-              resolve(this);
-              if (typeof success === 'function') {
-                success(this);
-              }
-            }, (errObj) => {
-              reject(errObj);
-              if (typeof error === 'function') {
-                error(errObj);
-              }
-            });
-          } else {
-            resolve(this);
-            if (typeof success === 'function') {
-              success(this);
-            }
-          }
+        }
+        if (promises.length) {
+          Promise.all(promises).then(
+            () => resolve(this),
+            errObj => reject(errObj)
+          );
         } else {
           resolve(this);
-          if (typeof success === 'function') {
-            success(this);
-          }
         }
       };
 
       if (this.isASleepingReference) {
-        this.ready(readyProps, (errObj) => {
-          reject(errObj);
-          if (typeof error === 'function') {
-            error(errObj);
-          }
-        });
+        this.ready().then(readyProps, errObj => reject(errObj));
       } else {
         readyProps();
       }
