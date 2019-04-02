@@ -1,12 +1,12 @@
 'use strict';
 
 export class HttpRequester {
-  constructor () {
+  constructor() {
     this._xsrfToken = null;
     this.responseCallbacks = [];
   }
 
-  on (event, callback) {
+  on(event, callback) {
     if (!this.hasOwnProperty(event + 'Callbacks')) {
       return false;
     }
@@ -14,7 +14,7 @@ export class HttpRequester {
     return true;
   }
 
-  off (event, callback) {
+  off(event, callback) {
     if (!this.hasOwnProperty(event + 'Callbacks')) {
       return false;
     }
@@ -25,16 +25,20 @@ export class HttpRequester {
     return true;
   }
 
-  setXsrfToken (xsrfToken) {
+  setXsrfToken(xsrfToken) {
     this._xsrfToken = xsrfToken;
   }
 
-  GET (opt) {
+  GET(opt) {
     return new Promise((resolve, reject) => {
       let request = new window.XMLHttpRequest();
       request.open('GET', this._makeUrl(opt.url, opt.data), true);
 
-      request.onreadystatechange = this._onReadyStateChange(opt, resolve, reject);
+      request.onreadystatechange = this._onReadyStateChange(
+        opt,
+        resolve,
+        reject
+      );
 
       if (this._xsrfToken !== null) {
         request.setRequestHeader('X-Xsrf-Token', this._xsrfToken);
@@ -43,35 +47,42 @@ export class HttpRequester {
     });
   }
 
-  POST (opt) {
+  POST(opt) {
     return this._postputdel({ type: 'POST', ...opt });
   }
 
-  PUT (opt) {
+  PUT(opt) {
     return this._postputdel({ type: 'PUT', ...opt });
   }
 
-  DELETE (opt) {
+  DELETE(opt) {
     return this._postputdel({ type: 'DELETE', ...opt });
   }
 
-  _postputdel (opt) {
+  _postputdel(opt) {
     return new Promise((resolve, reject) => {
       let request = new window.XMLHttpRequest();
       request.open(opt.type, opt.url, true);
 
-      request.onreadystatechange = this._onReadyStateChange(opt, resolve, reject);
+      request.onreadystatechange = this._onReadyStateChange(
+        opt,
+        resolve,
+        reject
+      );
 
       if (this._xsrfToken !== null) {
         request.setRequestHeader('X-Xsrf-Token', this._xsrfToken);
       }
-      request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+      request.setRequestHeader(
+        'Content-Type',
+        'application/x-www-form-urlencoded; charset=UTF-8'
+      );
       request.send(this._makeUrl('', opt.data, true));
     });
   }
 
-  _onReadyStateChange (opt, success, error) {
-    return function () {
+  _onReadyStateChange(opt, success, error) {
+    return function() {
       if (this.readyState === 4) {
         for (let i = 0; i < this.responseCallbacks.length; i++) {
           if (typeof this.responseCallbacks[i] !== 'undefined') {
@@ -106,7 +117,7 @@ export class HttpRequester {
           }
           if (typeof errObj !== 'object') {
             errObj = {
-              textStatus: this.responseText
+              textStatus: this.responseText,
             };
           }
           errObj.status = this.status;
@@ -116,7 +127,7 @@ export class HttpRequester {
     };
   }
 
-  _makeUrl (url, data, noSep) {
+  _makeUrl(url, data, noSep) {
     if (!data) {
       return url;
     }
@@ -133,7 +144,7 @@ export class HttpRequester {
     return url;
   }
 
-  _filterPhpMessages (text) {
+  _filterPhpMessages(text) {
     const phpMessages = /<br \/>\n(<b>[\w ]+<\/b>:.*?)<br \/>\n/gm;
     if (text.match(phpMessages)) {
       let match;
@@ -147,7 +158,7 @@ export class HttpRequester {
 }
 
 export class InvalidResponseError extends Error {
-  constructor (message) {
+  constructor(message) {
     super(message);
     this.name = 'InvalidResponseError';
   }

@@ -4,8 +4,12 @@ import { Entity, EntityIsSleepingReferenceError } from './Entity';
 import { PubSub, PubSubSubscription } from './PubSub';
 
 export {
-  Nymph, ClassNotAvailableError, InvalidRequestError,
+  Nymph,
+  ClassNotAvailableError,
+  InvalidRequestError,
   InvalidResponseError,
-  Entity, EntityIsSleepingReferenceError,
-  PubSub, PubSubSubscription
+  Entity,
+  EntityIsSleepingReferenceError,
+  PubSub,
+  PubSubSubscription,
 };

@@ -6,71 +6,81 @@ import { HttpRequester } from './HttpRequester';
 const requester = new HttpRequester();
 
 export class Nymph {
-  // === Static Methods ===
-
-  static setEntityClass (className, entityClass) {
+  static setEntityClass(className, entityClass) {
     Nymph.entityClasses[className] = entityClass;
   }
 
-  static getEntityClass (className) {
+  static getEntityClass(className) {
     if (Nymph.entityClasses.hasOwnProperty(className)) {
       return Nymph.entityClasses[className];
     }
-    if (typeof window !== 'undefined' &&
-        typeof window[className] !== 'undefined' &&
-        window[className] instanceof Nymph.entityClasses['Nymph\\Entity']
+    if (
+      typeof window !== 'undefined' &&
+      typeof window[className] !== 'undefined' &&
+      window[className] instanceof Nymph.entityClasses['Nymph\\Entity']
     ) {
       return window[className];
     }
     return null;
   }
 
-  static init (NymphOptions) {
+  static init(NymphOptions) {
     this.restURL = NymphOptions.restURL;
   }
 
-  static newUID (name) {
-    return requester.POST({
-      url: this.restURL,
-      dataType: 'text',
-      data: { 'action': 'uid', 'data': name }
-    }).then(data => Number(data));
+  static newUID(name) {
+    return requester
+      .POST({
+        url: this.restURL,
+        dataType: 'text',
+        data: { action: 'uid', data: name },
+      })
+      .then(data => Number(data));
   }
 
-  static setUID (name, value) {
+  static setUID(name, value) {
     return requester.PUT({
       url: this.restURL,
       dataType: 'json',
-      data: { 'action': 'uid', 'data': JSON.stringify({ 'name': name, 'value': value }) }
+      data: {
+        action: 'uid',
+        data: JSON.stringify({ name: name, value: value }),
+      },
     });
   }
 
-  static getUID (name) {
-    return requester.GET({
-      url: this.restURL,
-      dataType: 'text',
-      data: { 'action': 'uid', 'data': name }
-    }).then(data => Number(data));
+  static getUID(name) {
+    return requester
+      .GET({
+        url: this.restURL,
+        dataType: 'text',
+        data: { action: 'uid', data: name },
+      })
+      .then(data => Number(data));
   }
 
-  static deleteUID (name) {
+  static deleteUID(name) {
     return requester.DELETE({
       type: 'DELETE',
       url: this.restURL,
-      data: { 'action': 'uid', 'data': name }
+      data: { action: 'uid', data: name },
     });
   }
 
-  static saveEntity (entity, plural) {
+  static saveEntity(entity, _plural) {
     let method;
-    if (plural) {
+    if (_plural) {
       entity.forEach(cur => {
         if (!method) {
           method = cur.guid == null ? 'post' : 'put';
-        } else if ((method === 'post' && cur.guid != null) ||
-            (method === 'put' && cur.guid == null)
+        } else if (
+          (method === 'post' && cur.guid != null) ||
+          (method === 'put' && cur.guid == null)
         ) {
-          throw new InvalidRequestError('Due to REST restriction, you can only create new entities or update existing entities, not both at the same time.');
+          throw new InvalidRequestError(
+            'Due to REST restriction, you can only create new entities or ' +
+              'update existing entities, not both at the same time.'
+          );
         }
       });
       if (!method) {
@@ -82,12 +92,17 @@ export class Nymph {
     return requester[method]({
       url: this.restURL,
       dataType: 'json',
-      data: { 'action': plural ? 'entities' : 'entity', 'data': JSON.stringify(entity) }
+      data: {
+        action: _plural ? 'entities' : 'entity',
+        data: JSON.stringify(entity),
+      },
     }).then(data => {
-      if (plural && entity.length === data.length) {
+      if (_plural && entity.length === data.length) {
         for (let i = 0; i < data.length; i++) {
-          if (typeof data[i].guid !== 'undefined' && data[i].guid > 0 &&
-              (entity[i].guid == null || entity[i].guid === data[i].guid)
+          if (
+            typeof data[i].guid !== 'undefined' &&
+            data[i].guid > 0 &&
+            (entity[i].guid == null || entity[i].guid === data[i].guid)
           ) {
             entity[i].init(data[i]);
           }
@@ -96,16 +111,16 @@ export class Nymph {
       } else if (typeof data.guid !== 'undefined' && data.guid > 0) {
         return entity.init(data);
       } else {
-        return Promise.reject({ textStatus: 'Server error' }); // eslint-disable-line prefer-promise-reject-errors
+        return Promise.reject({ textStatus: 'Server error' });
       }
     });
   }
 
-  static saveEntities (entities) {
+  static saveEntities(entities) {
     return this.saveEntity(entities, true);
   }
 
-  static getEntity (options, ...selectors) {
+  static getEntity(options, ...selectors) {
     return this.getEntityData(options, ...selectors).then(data => {
       if (data != null) {
         if (options.return && options.return === 'guid') {
@@ -119,55 +134,69 @@ export class Nymph {
     });
   }
 
-  static getEntityData (options, ...selectors) {
-    return requester.GET({
-      url: this.restURL,
-      dataType: 'json',
-      data: { 'action': 'entity', 'data': JSON.stringify([options, ...selectors]) }
-    }).then(data => {
-      if (typeof data.guid !== 'undefined' && data.guid > 0) {
-        return data;
-      }
-      return null;
-    });
+  static getEntityData(options, ...selectors) {
+    return requester
+      .GET({
+        url: this.restURL,
+        dataType: 'json',
+        data: {
+          action: 'entity',
+          data: JSON.stringify([options, ...selectors]),
+        },
+      })
+      .then(data => {
+        if (typeof data.guid !== 'undefined' && data.guid > 0) {
+          return data;
+        }
+        return null;
+      });
   }
 
-  static getEntities (options, ...selectors) {
-    return requester.GET({
-      url: this.restURL,
-      dataType: 'json',
-      data: { 'action': 'entities', 'data': JSON.stringify([options, ...selectors]) }
-    }).then(data => {
-      if (options.return && options.return === 'guid') {
-        return data;
-      }
-      return data.map(this.initEntity.bind(this));
-    });
+  static getEntities(options, ...selectors) {
+    return requester
+      .GET({
+        url: this.restURL,
+        dataType: 'json',
+        data: {
+          action: 'entities',
+          data: JSON.stringify([options, ...selectors]),
+        },
+      })
+      .then(data => {
+        if (options.return && options.return === 'guid') {
+          return data;
+        }
+        return data.map(this.initEntity.bind(this));
+      });
   }
 
-  static initEntity (entityJSON) {
+  static initEntity(entityJSON) {
     const EntityClass = Nymph.getEntityClass(entityJSON.class);
     if (!EntityClass) {
-      throw new ClassNotAvailableError(entityJSON.class + ' class cannot be found.');
+      throw new ClassNotAvailableError(
+        entityJSON.class + ' class cannot be found.'
+      );
     }
-    const entity = new (EntityClass)();
+    const entity = new EntityClass();
     return entity.init(entityJSON);
   }
 
-  static initEntitiesFromData (item) {
+  static initEntitiesFromData(item) {
     if (Array.isArray(item)) {
       // Recurse into lower arrays.
       return item.map(this.initEntitiesFromData.bind(this));
-    } else if (item instanceof Object &&
-        !(item instanceof this.getEntityClass('Nymph\\Entity'))
+    } else if (
+      item instanceof Object &&
+      !(item instanceof this.getEntityClass('Nymph\\Entity'))
     ) {
-      if (item.hasOwnProperty('class') &&
-          Nymph.getEntityClass(item.class) &&
-          item.hasOwnProperty('guid') &&
-          item.hasOwnProperty('cdate') &&
-          item.hasOwnProperty('mdate') &&
-          item.hasOwnProperty('tags') &&
-          item.hasOwnProperty('data')
+      if (
+        item.hasOwnProperty('class') &&
+        Nymph.getEntityClass(item.class) &&
+        item.hasOwnProperty('guid') &&
+        item.hasOwnProperty('cdate') &&
+        item.hasOwnProperty('mdate') &&
+        item.hasOwnProperty('tags') &&
+        item.hasOwnProperty('data')
       ) {
         return this.initEntity(item);
       } else {
@@ -182,9 +211,9 @@ export class Nymph {
     return item;
   }
 
-  static deleteEntity (entity, plural) {
+  static deleteEntity(entity, _plural) {
     let jsonData, cur;
-    if (plural) {
+    if (_plural) {
       jsonData = [];
       for (let i = 0; i < entity.length; i++) {
         cur = entity[i].toJSON();
@@ -196,46 +225,68 @@ export class Nymph {
     return requester.DELETE({
       url: this.restURL,
       dataType: 'json',
-      data: { 'action': plural ? 'entities' : 'entity', 'data': JSON.stringify(jsonData) }
+      data: {
+        action: _plural ? 'entities' : 'entity',
+        data: JSON.stringify(jsonData),
+      },
     });
   }
 
-  static deleteEntities (entities) {
+  static deleteEntities(entities) {
     return this.deleteEntity(entities, true);
   }
 
-  static serverCall (entity, method, params) {
-    return requester.POST({
-      url: this.restURL,
-      dataType: 'json',
-      data: { 'action': 'method', 'data': JSON.stringify({ 'entity': entity, 'method': method, 'params': params }) }
-    }).then(data => this.initEntitiesFromData(data));
+  static serverCall(entity, method, params) {
+    return requester
+      .POST({
+        url: this.restURL,
+        dataType: 'json',
+        data: {
+          action: 'method',
+          data: JSON.stringify({
+            entity: entity,
+            method: method,
+            params: params,
+          }),
+        },
+      })
+      .then(data => this.initEntitiesFromData(data));
   }
 
-  static serverCallStatic (className, method, params) {
-    return requester.POST({
-      url: this.restURL,
-      dataType: 'json',
-      data: { 'action': 'method', 'data': JSON.stringify({ 'class': className, 'static': true, 'method': method, 'params': params }) }
-    }).then(data => this.initEntitiesFromData(data));
+  static serverCallStatic(className, method, params) {
+    return requester
+      .POST({
+        url: this.restURL,
+        dataType: 'json',
+        data: {
+          action: 'method',
+          data: JSON.stringify({
+            class: className,
+            static: true,
+            method: method,
+            params: params,
+          }),
+        },
+      })
+      .then(data => this.initEntitiesFromData(data));
   }
 
-  static hsort (array, property, parentProperty, caseSensitive, reverse) {
+  static hsort(array, property, parentProperty, caseSensitive, reverse) {
     const sorter = new EntitySorter(array);
     return sorter.hsort(property, parentProperty, caseSensitive, reverse);
   }
 
-  static psort (array, property, parentProperty, caseSensitive, reverse) {
+  static psort(array, property, parentProperty, caseSensitive, reverse) {
     const sorter = new EntitySorter(array);
     return sorter.psort(property, parentProperty, caseSensitive, reverse);
   }
 
-  static sort (array, property, caseSensitive, reverse) {
+  static sort(array, property, caseSensitive, reverse) {
     const sorter = new EntitySorter(array);
     return sorter.sort(property, caseSensitive, reverse);
   }
 
-  static on (event, callback) {
+  static on(event, callback) {
     if (!this.hasOwnProperty(event + 'Callbacks')) {
       return false;
     }
@@ -243,7 +294,7 @@ export class Nymph {
     return true;
   }
 
-  static off (event, callback) {
+  static off(event, callback) {
     if (!this.hasOwnProperty(event + 'Callbacks')) {
       return false;
     }
@@ -254,35 +305,31 @@ export class Nymph {
     return true;
   }
 
-  static setXsrfToken (token) {
+  static setXsrfToken(token) {
     requester.setXsrfToken(token);
   }
 }
-
-// === Static Properties ===
 
 // The current version of Nymph Client.
 Nymph.version = '4.0.0-beta.16';
 Nymph.entityClasses = {};
 Nymph.responseCallbacks = [];
 
-// === Error Classes ===
-
 export class ClassNotAvailableError extends Error {
-  constructor (message) {
+  constructor(message) {
     super(message);
     this.name = 'ClassNotAvailableError';
   }
 }
 
 export class InvalidRequestError extends Error {
-  constructor (message) {
+  constructor(message) {
     super(message);
     this.name = 'InvalidRequestError';
   }
 }
 
-// === Initialization ===
+// Initialization
 
 requester.on('response', data => {
   for (let i = 0; i < Nymph.responseCallbacks.length; i++) {
@@ -292,7 +339,10 @@ requester.on('response', data => {
   }
 });
 
-if (typeof window !== 'undefined' && typeof window.NymphOptions !== 'undefined') {
+if (
+  typeof window !== 'undefined' &&
+  typeof window.NymphOptions !== 'undefined'
+) {
   Nymph.init(window.NymphOptions);
 }
 

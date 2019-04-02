@@ -1,16 +1,19 @@
 'use strict';
 
 import { Nymph } from './Nymph';
-import { uniqueStrings, getDataReference, getSleepingReference, sortObj } from './utils';
+import {
+  uniqueStrings,
+  getDataReference,
+  getSleepingReference,
+  sortObj,
+} from './utils';
 
-const sleepErr = 'This entity is in a sleeping reference state. You must use .ready().then() to wake it.';
+const sleepErr =
+  'This entity is in a sleeping reference state. ' +
+  'You must use .ready().then() to wake it.';
 
 export class Entity {
-  // === Constructor ===
-
-  constructor (id) {
-    // === Instance Properties ===
-
+  constructor(id) {
     this.guid = null;
     this.cdate = null;
     this.mdate = null;
@@ -23,22 +26,25 @@ export class Entity {
     if (typeof id !== 'undefined' && !isNaN(parseInt(id, 10))) {
       this.guid = parseInt(id, 10);
       this.isASleepingReference = true;
-      this.sleepingReference = ['nymph_entity_reference', this.guid, this.constructor.class];
+      this.sleepingReference = [
+        'nymph_entity_reference',
+        this.guid,
+        this.constructor.class,
+      ];
       this.ready();
     }
   }
 
-  // === Static Methods ===
-
-  static serverCallStatic (method, params) {
-    // Turn the params into a real array, in case an arguments object was passed.
+  static serverCallStatic(method, params) {
+    // Turn the params into a real array, in case an arguments object was
+    // passed.
     const paramArray = Array.prototype.slice.call(params);
-    return Nymph.serverCallStatic(this.class, method, paramArray).then(data => data.return);
+    return Nymph.serverCallStatic(this.class, method, paramArray).then(
+      data => data.return
+    );
   }
 
-  // === Instance Methods ===
-
-  init (entityData) {
+  init(entityData) {
     if (entityData == null) {
       return this;
     }
@@ -63,7 +69,7 @@ export class Entity {
   }
 
   // Tag methods.
-  addTag (...tags) {
+  addTag(...tags) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -73,7 +79,7 @@ export class Entity {
     this.tags = uniqueStrings(this.tags.concat(tags));
   }
 
-  hasTag (...tags) {
+  hasTag(...tags) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -88,7 +94,7 @@ export class Entity {
     return true;
   }
 
-  removeTag (...tags) {
+  removeTag(...tags) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -105,7 +111,7 @@ export class Entity {
   }
 
   // Property getter and setter. You can also just access Entity.data directly.
-  get (name = null) {
+  get(name = null) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -122,7 +128,7 @@ export class Entity {
     }
   }
 
-  set (name, value = null) {
+  set(name, value = null) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -137,21 +143,21 @@ export class Entity {
     }
   }
 
-  save () {
+  save() {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
     return Nymph.saveEntity(this);
   }
 
-  delete () {
+  delete() {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
     return Nymph.deleteEntity(this);
   }
 
-  is (object) {
+  is(object) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -173,7 +179,7 @@ export class Entity {
     }
   }
 
-  equals (object) {
+  equals(object) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -198,7 +204,7 @@ export class Entity {
     return JSON.stringify(obData) === JSON.stringify(myData);
   }
 
-  inArray (array, strict) {
+  inArray(array, strict) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -213,7 +219,7 @@ export class Entity {
     return false;
   }
 
-  arraySearch (array, strict) {
+  arraySearch(array, strict) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -228,26 +234,30 @@ export class Entity {
     return false;
   }
 
-  refresh () {
+  refresh() {
     if (this.isASleepingReference) {
       return this.ready();
     }
     if (this.guid == null) {
       return Promise.resolve(this);
     }
-    return Nymph.getEntityData({
-      'class': this.constructor.class
-    }, {
-      'type': '&',
-      'guid': this.guid
-    }).then(data => this.init(data));
+    return Nymph.getEntityData(
+      {
+        class: this.constructor.class,
+      },
+      {
+        type: '&',
+        guid: this.guid,
+      }
+    ).then(data => this.init(data));
   }
 
-  serverCall (method, params, dontUpdateAfterCall) {
+  serverCall(method, params, dontUpdateAfterCall) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
-    // Turn the params into a real array, in case an arguments object was passed.
+    // Turn the params into a real array, in case an arguments object was
+    // passed.
     const paramArray = Array.prototype.slice.call(params);
     return Nymph.serverCall(this, method, paramArray).then(data => {
       if (!dontUpdateAfterCall) {
@@ -257,7 +267,7 @@ export class Entity {
     });
   }
 
-  toJSON () {
+  toJSON() {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
@@ -276,7 +286,7 @@ export class Entity {
     return obj;
   }
 
-  toReference () {
+  toReference() {
     if (this.isASleepingReference) {
       return this.sleepingReference;
     }
@@ -286,35 +296,37 @@ export class Entity {
     return ['nymph_entity_reference', this.guid, this.constructor.class];
   }
 
-  referenceSleep (reference) {
+  referenceSleep(reference) {
     this.isASleepingReference = true;
     this.guid = parseInt(reference[1], 10);
     this.sleepingReference = [...reference];
   }
 
-  ready () {
+  ready() {
     if (!this.isASleepingReference) {
       this.readyPromise = null;
       return Promise.resolve(this);
     }
     if (!this.readyPromise) {
       this.readyPromise = Nymph.getEntityData(
-        { 'class': this.sleepingReference[2] },
-        { 'type': '&', 'guid': this.sleepingReference[1] }
-      ).then(data => {
-        if (data == null) {
-          const errObj = { data, textStatus: 'No data returned.' };
-          return Promise.reject(errObj);
-        }
-        return this.init(data);
-      }).finally(() => {
-        this.readyPromise = null;
-      });
+        { class: this.sleepingReference[2] },
+        { type: '&', guid: this.sleepingReference[1] }
+      )
+        .then(data => {
+          if (data == null) {
+            const errObj = { data, textStatus: 'No data returned.' };
+            return Promise.reject(errObj);
+          }
+          return this.init(data);
+        })
+        .finally(() => {
+          this.readyPromise = null;
+        });
     }
     return this.readyPromise;
   }
 
-  readyAll (level) {
+  readyAll(level) {
     return new Promise((resolve, reject) => {
       // Run this once this entity is ready.
       const readyProps = () => {
@@ -334,11 +346,17 @@ export class Entity {
           if (!this.data.hasOwnProperty(k)) {
             continue;
           }
-          if (this.data[k] instanceof Entity && this.data[k].isASleepingReference) {
+          if (
+            this.data[k] instanceof Entity &&
+            this.data[k].isASleepingReference
+          ) {
             promises.push(this.data[k].readyAll(newLevel));
           } else if (Array.isArray(this.data[k])) {
             for (let i = 0; i < this.data[k].length; i++) {
-              if (this.data[k][i] instanceof Entity && this.data[k][i].isASleepingReference) {
+              if (
+                this.data[k][i] instanceof Entity &&
+                this.data[k][i].isASleepingReference
+              ) {
                 promises.push(this.data[k][i].readyAll(newLevel));
               }
             }
@@ -363,17 +381,13 @@ export class Entity {
   }
 }
 
-// === Static Properties ===
-
 // The name of the server class (Shouldn't start with a \)
 Entity.class = 'Nymph\\Entity';
 
 Nymph.setEntityClass(Entity.class, Entity);
 
-// === Error Classes ===
-
 export class EntityIsSleepingReferenceError extends Error {
-  constructor (message) {
+  constructor(message) {
     super(message);
     this.name = 'EntityIsSleepingReferenceError';
   }

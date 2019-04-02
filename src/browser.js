@@ -11,5 +11,5 @@ window.NymphClient = {
   ClassNotAvailableError,
   InvalidRequestError,
   InvalidResponseError,
-  EntityIsSleepingReferenceError
+  EntityIsSleepingReferenceError,
 };

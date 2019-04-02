@@ -4,7 +4,7 @@
 import { Nymph } from './Nymph';
 import { Entity } from './Entity';
 
-let root = (window || self);
+let root = window || self;
 let authToken = null;
 
 if (!('WebSocket' in root)) {
@@ -14,9 +14,7 @@ if (!('WebSocket' in root)) {
 const WebSocket = root.WebSocket;
 
 export class PubSub {
-  // === Static Methods ===
-
-  static init (NymphOptions) {
+  static init(NymphOptions) {
     this.pubsubURL = NymphOptions.pubsubURL;
     window && window.addEventListener('online', () => this.connect());
     if (!navigator || navigator.onLine) {
@@ -28,7 +26,7 @@ export class PubSub {
     let getEntity = Nymph.getEntity;
     let getUID = Nymph.getUID;
 
-    Nymph.getEntities = function (options, ...selectors) {
+    Nymph.getEntities = function(options, ...selectors) {
       const promise = getEntities.apply(Nymph, [options, ...selectors]);
       promise.query = JSON.stringify([options, ...selectors]);
       promise.subscribe = (resolve, reject, count) => {
@@ -44,7 +42,7 @@ export class PubSub {
       return promise;
     };
 
-    Nymph.getEntity = function (options, ...selectors) {
+    Nymph.getEntity = function(options, ...selectors) {
       const promise = getEntity.apply(Nymph, [options, ...selectors]);
       options.limit = 1;
       promise.query = JSON.stringify([options, ...selectors]);
@@ -72,7 +70,7 @@ export class PubSub {
       return promise;
     };
 
-    Nymph.getUID = function (name) {
+    Nymph.getUID = function(name) {
       const promise = getUID.apply(Nymph, [name]);
       promise.subscribe = (resolve, reject, count) => {
         const callbacks = [resolve, reject, count];
@@ -83,17 +81,20 @@ export class PubSub {
         return {
           unsubscribe: () => {
             PubSub.unsubscribeUID(name, callbacks);
-          }
+          },
         };
       };
       return promise;
     };
 
-    Entity.prototype.subscribe = function (resolve, reject, count) {
+    Entity.prototype.subscribe = function(resolve, reject, count) {
       if (!this.guid) {
         return false;
       }
-      const query = [{ 'class': this.constructor.class, 'limit': 1 }, { type: '&', guid: this.guid }];
+      const query = [
+        { class: this.constructor.class, limit: 1 },
+        { type: '&', guid: this.guid },
+      ];
       const jsonQuery = JSON.stringify(query);
 
       const newResolve = args => {
@@ -127,9 +128,13 @@ export class PubSub {
     return this;
   }
 
-  static connect () {
+  static connect() {
     // Are we already connected?
-    if (this.connection && (this.connection.readyState === WebSocket.OPEN || this.connection.readyState === WebSocket.CONNECTING)) {
+    if (
+      this.connection &&
+      (this.connection.readyState === WebSocket.OPEN ||
+        this.connection.readyState === WebSocket.CONNECTING)
+    ) {
       return;
     }
 
@@ -137,12 +142,15 @@ export class PubSub {
     this._attemptConnect();
   }
 
-  static _waitForConnection (attempts = 0) {
+  static _waitForConnection(attempts = 0) {
     // Wait 5 seconds, then check and attempt connection again if
     // unsuccessful. Keep repeating until successful.
     setTimeout(() => {
       if (this.connection.readyState !== WebSocket.OPEN) {
-        if (this.connection.readyState !== WebSocket.CONNECTING || attempts >= 5) {
+        if (
+          this.connection.readyState !== WebSocket.CONNECTING ||
+          attempts >= 5
+        ) {
           this.connection.close();
           this._waitForConnection();
           this._attemptConnect();
@@ -153,14 +161,14 @@ export class PubSub {
     }, 5000);
   }
 
-  static _attemptConnect () {
+  static _attemptConnect() {
     // Attempt to connect.
     this.connection = new WebSocket(this.pubsubURL);
     this.connection.onopen = this._onopen.bind(this);
     this.connection.onmessage = this._onmessage.bind(this);
   }
 
-  static _onopen () {
+  static _onopen() {
     root.console && root.console.log('Nymph-PubSub connection established!');
     for (let i = 0; i < this.connectCallbacks.length; i++) {
       this.connectCallbacks[i] && this.connectCallbacks[i]();
@@ -168,8 +176,8 @@ export class PubSub {
 
     if (authToken != null) {
       this._send({
-        'action': 'authenticate',
-        'token': authToken
+        action: 'authenticate',
+        token: authToken,
       });
     }
 
@@ -178,7 +186,11 @@ export class PubSub {
         continue;
       }
       let count = false;
-      for (let callbacks = 0; callbacks < this.subscriptions.queries[query].length; callbacks++) {
+      for (
+        let callbacks = 0;
+        callbacks < this.subscriptions.queries[query].length;
+        callbacks++
+      ) {
         if (this.subscriptions.queries[query][callbacks][2]) {
           count = true;
           break;
@@ -192,7 +204,11 @@ export class PubSub {
         continue;
       }
       let count = false;
-      for (let callbacks = 0; callbacks < this.subscriptions.uids[name].length; callbacks++) {
+      for (
+        let callbacks = 0;
+        callbacks < this.subscriptions.uids[name].length;
+        callbacks++
+      ) {
         if (this.subscriptions.uids[name][callbacks][2]) {
           count = true;
           break;
@@ -204,28 +220,35 @@ export class PubSub {
     this.connection.onclose = this._onclose.bind(this);
   }
 
-  static _onmessage (e) {
+  static _onmessage(e) {
     let data = JSON.parse(e.data);
     let val = null;
     let subs = [];
     let count = data.hasOwnProperty('count');
-    if (data.hasOwnProperty('query') && this.subscriptions.queries.hasOwnProperty(data.query)) {
+    if (
+      data.hasOwnProperty('query') &&
+      this.subscriptions.queries.hasOwnProperty(data.query)
+    ) {
       subs = [...this.subscriptions.queries[data.query]];
       if (!count) {
         val = data;
       }
-    } else if (data.hasOwnProperty('uid') && this.subscriptions.uids.hasOwnProperty(data.uid)) {
+    } else if (
+      data.hasOwnProperty('uid') &&
+      this.subscriptions.uids.hasOwnProperty(data.uid)
+    ) {
       subs = [...this.subscriptions.uids[data.uid]];
       if (!count && (data.event === 'newUID' || data.event === 'setUID')) {
         val = data.value;
       }
     }
     for (let i = 0; i < subs.length; i++) {
-      subs[i][count ? 2 : 0] && subs[i][count ? 2 : 0](count ? data.count : val);
+      subs[i][count ? 2 : 0] &&
+        subs[i][count ? 2 : 0](count ? data.count : val);
     }
   }
 
-  static _onclose (e) {
+  static _onclose(e) {
     root.console && root.console.log('Nymph-PubSub connection closed: ', e);
     for (let i = 0; i < this.disconnectCallbacks.length; i++) {
       this.disconnectCallbacks[i] && this.disconnectCallbacks[i]();
@@ -237,21 +260,23 @@ export class PubSub {
     }
   }
 
-  static _send (data) {
+  static _send(data) {
     this.connection.send(JSON.stringify(data));
   }
 
-  static isConnectionOpen () {
+  static isConnectionOpen() {
     return this.connection && this.connection.readyState === WebSocket.OPEN;
   }
 
-  static subscribeQuery (query, callbacks) {
+  static subscribeQuery(query, callbacks) {
     let isNewSubscription = false;
     if (!this.subscriptions.queries.hasOwnProperty(query)) {
       this.subscriptions.queries[query] = [];
       isNewSubscription = true;
     }
-    let isCountSubscribed = isNewSubscription ? false : this._isCountSubscribedQuery(query);
+    let isCountSubscribed = isNewSubscription
+      ? false
+      : this._isCountSubscribedQuery(query);
     this.subscriptions.queries[query].push(callbacks);
     if (this.isConnectionOpen()) {
       if (isNewSubscription) {
@@ -263,13 +288,15 @@ export class PubSub {
     }
   }
 
-  static subscribeUID (name, callbacks) {
+  static subscribeUID(name, callbacks) {
     let isNewSubscription = false;
     if (!this.subscriptions.uids.hasOwnProperty(name)) {
       this.subscriptions.uids[name] = [];
       isNewSubscription = true;
     }
-    let isCountSubscribed = isNewSubscription ? false : this._isCountSubscribedUID(name);
+    let isCountSubscribed = isNewSubscription
+      ? false
+      : this._isCountSubscribedUID(name);
     this.subscriptions.uids[name].push(callbacks);
     if (this.isConnectionOpen()) {
       if (isNewSubscription) {
@@ -281,27 +308,31 @@ export class PubSub {
     }
   }
 
-  static _subscribeQuery (query, count) {
+  static _subscribeQuery(query, count) {
     this._send({
-      'action': 'subscribe',
-      'query': query,
-      'count': count
+      action: 'subscribe',
+      query: query,
+      count: count,
     });
   }
 
-  static _subscribeUID (name, count) {
+  static _subscribeUID(name, count) {
     this._send({
-      'action': 'subscribe',
-      'uid': name,
-      'count': count
+      action: 'subscribe',
+      uid: name,
+      count: count,
     });
   }
 
-  static _isCountSubscribedQuery (query) {
+  static _isCountSubscribedQuery(query) {
     if (!this.subscriptions.queries.hasOwnProperty(query)) {
       return false;
     }
-    for (let callbacks = 0; callbacks < this.subscriptions.queries[query].length; callbacks++) {
+    for (
+      let callbacks = 0;
+      callbacks < this.subscriptions.queries[query].length;
+      callbacks++
+    ) {
       if (this.subscriptions.queries[query][callbacks][2]) {
         return true;
       }
@@ -309,11 +340,15 @@ export class PubSub {
     return false;
   }
 
-  static _isCountSubscribedUID (name) {
+  static _isCountSubscribedUID(name) {
     if (!this.subscriptions.uids.hasOwnProperty(name)) {
       return false;
     }
-    for (let callbacks = 0; callbacks < this.subscriptions.uids[name].length; callbacks++) {
+    for (
+      let callbacks = 0;
+      callbacks < this.subscriptions.uids[name].length;
+      callbacks++
+    ) {
       if (this.subscriptions.uids[name][callbacks][2]) {
         return true;
       }
@@ -321,7 +356,7 @@ export class PubSub {
     return false;
   }
 
-  static unsubscribeQuery (query, callbacks) {
+  static unsubscribeQuery(query, callbacks) {
     if (!this.subscriptions.queries.hasOwnProperty(query)) {
       return;
     }
@@ -338,7 +373,7 @@ export class PubSub {
     }
   }
 
-  static unsubscribeUID (name, callbacks) {
+  static unsubscribeUID(name, callbacks) {
     if (!this.subscriptions.uids.hasOwnProperty(name)) {
       return;
     }
@@ -355,21 +390,21 @@ export class PubSub {
     }
   }
 
-  static _unsubscribeQuery (query) {
+  static _unsubscribeQuery(query) {
     this._send({
-      'action': 'unsubscribe',
-      'query': query
+      action: 'unsubscribe',
+      query: query,
     });
   }
 
-  static _unsubscribeUID (name) {
+  static _unsubscribeUID(name) {
     this._send({
-      'action': 'unsubscribe',
-      'uid': name
+      action: 'unsubscribe',
+      uid: name,
     });
   }
 
-  static updateArray (oldArr, update) {
+  static updateArray(oldArr, update) {
     if (Array.isArray(update)) {
       const newArr = [...update];
 
@@ -381,13 +416,21 @@ export class PubSub {
 
       const idMap = {};
       for (let i = 0; i < newArr.length; i++) {
-        if (newArr[i] instanceof Nymph.getEntityClass('Nymph\\Entity') && newArr[i].guid) {
+        if (
+          newArr[i] instanceof Nymph.getEntityClass('Nymph\\Entity') &&
+          newArr[i].guid
+        ) {
           idMap[newArr[i].guid] = i;
         }
       }
       const remove = [];
       for (let k in oldArr) {
-        if (k <= 4294967294 && /^0$|^[1-9]\d*$/.test(k) && oldArr.hasOwnProperty(k)) { // This handles sparse arrays.
+        if (
+          // This handles sparse arrays.
+          k <= 4294967294 &&
+          /^0$|^[1-9]\d*$/.test(k) &&
+          oldArr.hasOwnProperty(k)
+        ) {
           k = Number(k);
           if (!idMap.hasOwnProperty(oldArr[k].guid)) {
             // It was deleted.
@@ -403,7 +446,7 @@ export class PubSub {
         }
       }
       // Now we must remove the deleted ones.
-      remove.sort(function (a, b) {
+      remove.sort(function(a, b) {
         // Sort backwards so we can remove in reverse order. (Preserves
         // indices.)
         if (a > b) return -1;
@@ -448,13 +491,23 @@ export class PubSub {
       if (entity != null) {
         // Insert the entity in order.
         const sort = query[0].hasOwnProperty('sort') ? query[0].sort : 'cdate';
-        const reverse = query[0].hasOwnProperty('reverse') ? query[0].reverse : false;
+        const reverse = query[0].hasOwnProperty('reverse')
+          ? query[0].reverse
+          : false;
         let i;
 
         if (reverse) {
-          for (i = 0; (oldArr[i] || {})[sort] >= entity[sort] && i < oldArr.length; i++);
+          for (
+            i = 0;
+            (oldArr[i] || {})[sort] >= entity[sort] && i < oldArr.length;
+            i++
+          );
         } else {
-          for (i = 0; (oldArr[i] || {})[sort] < entity[sort] && i < oldArr.length; i++);
+          for (
+            i = 0;
+            (oldArr[i] || {})[sort] < entity[sort] && i < oldArr.length;
+            i++
+          );
         }
 
         oldArr.splice(i, 0, entity);
@@ -462,7 +515,7 @@ export class PubSub {
     }
   }
 
-  static on (event, callback) {
+  static on(event, callback) {
     if (!this.hasOwnProperty(event + 'Callbacks')) {
       return false;
     }
@@ -470,7 +523,7 @@ export class PubSub {
     return true;
   }
 
-  static off (event, callback) {
+  static off(event, callback) {
     if (!this.hasOwnProperty(event + 'Callbacks')) {
       return false;
     }
@@ -481,33 +534,28 @@ export class PubSub {
     return true;
   }
 
-  static setToken (token) {
+  static setToken(token) {
     authToken = token;
     if (this.isConnectionOpen()) {
       this._send({
-        'action': 'authenticate',
-        'token': authToken
+        action: 'authenticate',
+        token: authToken,
       });
     }
   }
 }
 
-// === Static Properties ===
 PubSub.connection = null;
 PubSub.pubsubURL = null;
 PubSub.subscriptions = {
   queries: {},
-  uids: {}
+  uids: {},
 };
 PubSub.connectCallbacks = [];
 PubSub.disconnectCallbacks = [];
 
 export class PubSubSubscription {
-  // === Constructor ===
-
-  constructor (query, callbacks, unsubscribe) {
-    // === Instance Properties ===
-
+  constructor(query, callbacks, unsubscribe) {
     this.query = query;
     this.callbacks = callbacks;
     this.unsubscribe = unsubscribe;
