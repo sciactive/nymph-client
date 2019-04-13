@@ -72,10 +72,10 @@ export class Nymph {
     if (_plural) {
       entity.forEach(cur => {
         if (!method) {
-          method = cur.guid == null ? 'post' : 'put';
+          method = cur.guid == null ? 'POST' : 'PUT';
         } else if (
-          (method === 'post' && cur.guid != null) ||
-          (method === 'put' && cur.guid == null)
+          (method === 'POST' && cur.guid != null) ||
+          (method === 'PUT' && cur.guid == null)
         ) {
           throw new InvalidRequestError(
             'Due to REST restriction, you can only create new entities or ' +
@@ -84,10 +84,10 @@ export class Nymph {
         }
       });
       if (!method) {
-        method = 'post';
+        method = 'POST';
       }
     } else {
-      method = entity.guid == null ? 'post' : 'put';
+      method = entity.guid == null ? 'POST' : 'PUT';
     }
     return requester[method]({
       url: this.restURL,

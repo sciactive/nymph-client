@@ -11,78 +11,61 @@ export class EntitySorter {
   }
 
   _arraySortProperty(a, b) {
-    let aprop;
-    let bprop;
-    let property = this.sortProperty;
+    let prop = this.sortProperty;
     let parent = this.sortParent;
-    let notData =
-      property === 'guid' || property === 'cdate' || property === 'mdate';
+    let notData = prop === 'guid' || prop === 'cdate' || prop === 'mdate';
+    const Entity = Nymph.getEntityClass('Nymph\\Entity');
     if (
       parent != null &&
-      ((a.data[parent] instanceof Nymph.getEntityClass('Nymph\\Entity') &&
-        typeof (notData
-          ? a.data[parent][property]
-          : a.data[parent].data[property]) !== 'undefined') ||
-        (b.data[parent] instanceof Nymph.getEntityClass('Nymph\\Entity') &&
-          typeof (notData
-            ? b.data[parent][property]
-            : b.data[parent].data[property]) !== 'undefined'))
+      a.data[parent] instanceof Entity &&
+      b.data[parent] instanceof Entity
     ) {
+      const aParentProp = notData
+        ? a.data[parent][prop]
+        : a.data[parent].data[prop];
+      const bParentProp = notData
+        ? b.data[parent][prop]
+        : b.data[parent].data[prop];
       if (
-        !this.sortCaseSensitive &&
-        typeof (notData
-          ? a.data[parent][property]
-          : a.data[parent].data[property]) === 'string' &&
-        typeof (notData
-          ? b.data[parent][property]
-          : b.data[parent].data[property]) === 'string'
+        typeof aParentProp !== 'undefined' ||
+        typeof bParentProp !== 'undefined'
       ) {
-        aprop = (notData
-          ? a.data[parent][property]
-          : a.data[parent].data[property]
-        ).toUpperCase();
-        bprop = (notData
-          ? b.data[parent][property]
-          : b.data[parent].data[property]
-        ).toUpperCase();
-        if (aprop !== bprop) {
-          return aprop.localeCompare(bprop);
-        }
-      } else {
         if (
-          (notData ? a.data[parent][property] : a.data[parent].data[property]) >
-          (notData ? b.data[parent][property] : b.data[parent].data[property])
+          !this.sortCaseSensitive &&
+          typeof aParentProp === 'string' &&
+          typeof bParentProp === 'string'
         ) {
-          return 1;
-        }
-        if (
-          (notData ? a.data[parent][property] : a.data[parent].data[property]) <
-          (notData ? b.data[parent][property] : b.data[parent].data[property])
-        ) {
-          return -1;
+          const asort = aParentProp.toUpperCase();
+          const bsort = bParentProp.toUpperCase();
+          if (asort !== bsort) {
+            return asort.localeCompare(bsort);
+          }
+        } else {
+          if (aParentProp > bParentProp) {
+            return 1;
+          }
+          if (aParentProp < bParentProp) {
+            return -1;
+          }
         }
       }
     }
-    // If they have the same parent, order them by their own property.
+    // If they have the same parent, order them by their own prop.
+    const aProp = notData ? a[prop] : a.data[prop];
+    const bProp = notData ? b[prop] : b.data[prop];
     if (
       !this.sortCaseSensitive &&
-      typeof (notData ? a[property] : a.data[property]) === 'string' &&
-      typeof (notData ? b[property] : b.data[property]) === 'string'
+      typeof aProp === 'string' &&
+      typeof bProp === 'string'
     ) {
-      aprop = (notData ? a[property] : a.data[property]).toUpperCase();
-      bprop = (notData ? b[property] : b.data[property]).toUpperCase();
-      return aprop.localeCompare(bprop);
+      const asort = aProp.toUpperCase();
+      const bsort = bProp.toUpperCase();
+      return asort.localeCompare(bsort);
     } else {
-      if (
-        (notData ? a[property] : a.data[property]) >
-        (notData ? b[property] : b.data[property])
-      ) {
+      if (aProp > bProp) {
         return 1;
       }
-      if (
-        (notData ? a[property] : a.data[property]) <
-        (notData ? b[property] : b.data[property])
-      ) {
+      if (aProp < bProp) {
         return -1;
       }
     }
@@ -99,15 +82,14 @@ export class EntitySorter {
     // Now sort by children.
     let newArray = [];
     // Look for entities ready to go in order.
-    let changed, pkey, ancestry, newKey;
+    let changed;
     while (this.array.length) {
       changed = false;
       for (let key = 0; key < this.array.length; key++) {
         // Must break after adding one, so any following children don't go in
         // the wrong order.
         if (
-          typeof this.array[key].data[parentProperty] === 'undefined' ||
-          this.array[key].data[parentProperty] === null ||
+          this.array[key].data[parentProperty] == null ||
           typeof this.array[key].data[parentProperty].inArray !== 'function' ||
           !this.array[key].data[parentProperty].inArray(
             newArray.concat(this.array)
@@ -121,17 +103,17 @@ export class EntitySorter {
           break;
         } else {
           // Else find the parent.
-          pkey = this.array[key].data[parentProperty].arraySearch(newArray);
+          const pkey = this.array[key].data[parentProperty].arraySearch(
+            newArray
+          );
           if (pkey !== false) {
             // And insert after the parent.
             // This makes entities go to the end of the child list.
-            ancestry = [this.array[key].data[parentProperty].guid];
-            newKey = Number(pkey);
+            const ancestry = [this.array[key].data[parentProperty].guid];
+            let newKey = Number(pkey);
             while (
               typeof newArray[newKey + 1] !== 'undefined' &&
-              typeof newArray[newKey + 1].data[parentProperty] !==
-                'undefined' &&
-              newArray[newKey + 1].data[parentProperty] !== null &&
+              newArray[newKey + 1].data[parentProperty] != null &&
               ancestry.indexOf(
                 newArray[newKey + 1].data[parentProperty].guid
               ) !== -1
@@ -159,12 +141,12 @@ export class EntitySorter {
         // stick the rest on the end.
         if (this.array.length) {
           newArray = newArray.concat(this.array);
-          this.array = [];
+          this.array.splice(0, this.array.length);
         }
       }
     }
     // Now push the new array out.
-    this.array = newArray;
+    this.array.splice(0, 0, ...newArray);
     return this.array;
   }
 

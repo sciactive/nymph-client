@@ -82,15 +82,17 @@ export class HttpRequester {
   }
 
   _onReadyStateChange(opt, success, error) {
+    let that = this;
+
     return function() {
       if (this.readyState === 4) {
-        for (let i = 0; i < this.responseCallbacks.length; i++) {
-          if (typeof this.responseCallbacks[i] !== 'undefined') {
-            this.responseCallbacks[i](this);
+        for (let i = 0; i < that.responseCallbacks.length; i++) {
+          if (typeof that.responseCallbacks[i] !== 'undefined') {
+            that.responseCallbacks[i](that);
           }
         }
         if (this.status >= 200 && this.status < 400) {
-          const response = this._filterPhpMessages(this.responseText);
+          const response = that._filterPhpMessages(this.responseText);
           if (opt.dataType === 'json') {
             if (!response.length) {
               throw new InvalidResponseError('Server response was empty.');
@@ -109,7 +111,7 @@ export class HttpRequester {
         } else {
           let errObj;
           try {
-            errObj = JSON.parse(this._filterPhpMessages(this.responseText));
+            errObj = JSON.parse(that._filterPhpMessages(this.responseText));
           } catch (e) {
             if (!(e instanceof SyntaxError)) {
               throw e;

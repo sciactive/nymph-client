@@ -2,10 +2,12 @@ const path = require('path');
 
 module.exports = {
   mode: 'production',
-  entry: './src/browser.js',
+  entry: './src/index.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js'
+    filename: 'NymphClient.js',
+    library: ['NymphClient'],
+    libraryTarget: 'this'
   },
   module: {
     rules: [

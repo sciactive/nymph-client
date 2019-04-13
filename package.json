@@ -2,7 +2,7 @@
   "name": "nymph-client",
   "version": "4.0.0-beta.16",
   "description": "Powerful object data storage and querying for collaborative web apps.",
-  "main": "src/NymphClient.js",
+  "main": "src/index.js",
   "scripts": {
     "build": "webpack",
     "watch": "webpack --watch",
