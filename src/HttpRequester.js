@@ -31,7 +31,7 @@ export class HttpRequester {
 
   GET(opt) {
     return new Promise((resolve, reject) => {
-      let request = new window.XMLHttpRequest();
+      let request = new XMLHttpRequest();
       request.open('GET', this._makeUrl(opt.url, opt.data), true);
 
       request.onreadystatechange = this._onReadyStateChange(
@@ -61,7 +61,7 @@ export class HttpRequester {
 
   _postputdel(opt) {
     return new Promise((resolve, reject) => {
-      let request = new window.XMLHttpRequest();
+      let request = new XMLHttpRequest();
       request.open(opt.type, opt.url, true);
 
       request.onreadystatechange = this._onReadyStateChange(

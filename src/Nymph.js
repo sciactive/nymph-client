@@ -14,13 +14,6 @@ export class Nymph {
     if (Nymph.entityClasses.hasOwnProperty(className)) {
       return Nymph.entityClasses[className];
     }
-    if (
-      typeof window !== 'undefined' &&
-      typeof window[className] !== 'undefined' &&
-      window[className] instanceof Nymph.entityClasses['Nymph\\Entity']
-    ) {
-      return window[className];
-    }
     return null;
   }
 
@@ -339,11 +332,8 @@ requester.on('response', data => {
   }
 });
 
-if (
-  typeof window !== 'undefined' &&
-  typeof window.NymphOptions !== 'undefined'
-) {
-  Nymph.init(window.NymphOptions);
+if (typeof NymphOptions !== 'undefined') {
+  Nymph.init(NymphOptions);
 }
 
 export default Nymph;

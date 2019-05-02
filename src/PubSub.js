@@ -1,23 +1,21 @@
-/* global self */
 'use strict';
 
 import { Nymph } from './Nymph';
 import { Entity } from './Entity';
 
-let root = window || self;
 let authToken = null;
 
-if (!('WebSocket' in root)) {
+if (typeof WebSocket === 'undefined') {
   throw new Error('Nymph-PubSub requires WebSocket!');
 }
-
-const WebSocket = root.WebSocket;
 
 export class PubSub {
   static init(NymphOptions) {
     this.pubsubURL = NymphOptions.pubsubURL;
-    window && window.addEventListener('online', () => this.connect());
-    if (!navigator || navigator.onLine) {
+    if (typeof addEventListener !== 'undefined') {
+      addEventListener('online', () => this.connect());
+    }
+    if (typeof navigator === 'undefined' || navigator.onLine) {
       this.connect();
     }
 
@@ -169,7 +167,9 @@ export class PubSub {
   }
 
   static _onopen() {
-    root.console && root.console.log('Nymph-PubSub connection established!');
+    if (typeof console !== 'undefined') {
+      console.log('Nymph-PubSub connection established!');
+    }
     for (let i = 0; i < this.connectCallbacks.length; i++) {
       this.connectCallbacks[i] && this.connectCallbacks[i]();
     }
@@ -249,11 +249,13 @@ export class PubSub {
   }
 
   static _onclose(e) {
-    root.console && root.console.log('Nymph-PubSub connection closed: ', e);
+    if (typeof console !== 'undefined') {
+      console.log('Nymph-PubSub connection closed: ', e);
+    }
     for (let i = 0; i < this.disconnectCallbacks.length; i++) {
       this.disconnectCallbacks[i] && this.disconnectCallbacks[i]();
     }
-    if (!navigator || navigator.onLine) {
+    if (typeof navigator === 'undefined' || navigator.onLine) {
       this.connection.close();
       this._waitForConnection();
       this._attemptConnect();
@@ -562,8 +564,8 @@ export class PubSubSubscription {
   }
 }
 
-if ('NymphOptions' in root && root.NymphOptions.pubsubURL) {
-  PubSub.init(root.NymphOptions);
+if (typeof NymphOptions !== 'undefined' && NymphOptions.pubsubURL) {
+  PubSub.init(NymphOptions);
 }
 
 export default PubSub;
