@@ -2,12 +2,15 @@ const path = require('path');
 
 module.exports = {
   mode: 'production',
-  entry: './src/index.js',
+  entry: {
+    NymphClient: './src/index.js'
+  },
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'NymphClient.js',
-    library: ['NymphClient'],
-    libraryTarget: 'this'
+    filename: '[name].js',
+    library: ['nymph-client'],
+    libraryTarget: 'umd',
+    globalObject: 'this'
   },
   module: {
     rules: [
