@@ -2,6 +2,7 @@
 
 import { EntitySorter } from './EntitySorter';
 import { HttpRequester } from './HttpRequester';
+import { getDataReference } from './utils';
 
 const requester = new HttpRequester();
 
@@ -239,7 +240,7 @@ export class Nymph {
           data: JSON.stringify({
             entity: entity,
             method: method,
-            params: params,
+            params: getDataReference(params),
           }),
         },
       })
@@ -257,7 +258,7 @@ export class Nymph {
             class: className,
             static: true,
             method: method,
-            params: params,
+            params: getDataReference(params),
           }),
         },
       })
