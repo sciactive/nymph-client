@@ -1,6 +1,35 @@
 'use strict';
 
 export class HttpRequester {
+  static makeUrl(url, data, noSep) {
+    if (!data) {
+      return url;
+    }
+    for (let k in data) {
+      if (data.hasOwnProperty(k)) {
+        if (noSep) {
+          url = url + (url.length ? '&' : '');
+        } else {
+          url = url + (url.indexOf('?') !== -1 ? '&' : '?');
+        }
+        url = url + encodeURIComponent(k) + '=' + encodeURIComponent(data[k]);
+      }
+    }
+    return url;
+  }
+
+  static filterPhpMessages(text) {
+    const phpMessages = /<br \/>\n(<b>[\w ]+<\/b>:.*?)<br \/>\n/gm;
+    if (text.match(phpMessages)) {
+      let match;
+      while ((match = phpMessages.exec(text)) !== null) {
+        console.log('PHP Message:', match[1].replace(/<\/?b>/g, ''));
+      }
+      text = text.replace(phpMessages, '');
+    }
+    return text;
+  }
+
   constructor() {
     this._xsrfToken = null;
     this.responseCallbacks = [];
@@ -32,7 +61,7 @@ export class HttpRequester {
   GET(opt) {
     return new Promise((resolve, reject) => {
       let request = new XMLHttpRequest();
-      request.open('GET', this._makeUrl(opt.url, opt.data), true);
+      request.open('GET', HttpRequester.makeUrl(opt.url, opt.data), true);
 
       request.onreadystatechange = this._onReadyStateChange(
         opt,
@@ -48,18 +77,22 @@ export class HttpRequester {
   }
 
   POST(opt) {
-    return this._postputdel({ type: 'POST', ...opt });
+    return this._httpWriteRequest({ type: 'POST', ...opt });
   }
 
   PUT(opt) {
-    return this._postputdel({ type: 'PUT', ...opt });
+    return this._httpWriteRequest({ type: 'PUT', ...opt });
+  }
+
+  PATCH(opt) {
+    return this._httpWriteRequest({ type: 'PATCH', ...opt });
   }
 
   DELETE(opt) {
-    return this._postputdel({ type: 'DELETE', ...opt });
+    return this._httpWriteRequest({ type: 'DELETE', ...opt });
   }
 
-  _postputdel(opt) {
+  _httpWriteRequest(opt) {
     return new Promise((resolve, reject) => {
       let request = new XMLHttpRequest();
       request.open(opt.type, opt.url, true);
@@ -77,7 +110,7 @@ export class HttpRequester {
         'Content-Type',
         'application/x-www-form-urlencoded; charset=UTF-8'
       );
-      request.send(this._makeUrl('', opt.data, true));
+      request.send(HttpRequester.makeUrl('', opt.data, true));
     });
   }
 
@@ -92,7 +125,7 @@ export class HttpRequester {
           }
         }
         if (this.status >= 200 && this.status < 400) {
-          const response = that._filterPhpMessages(this.responseText);
+          const response = HttpRequester.filterPhpMessages(this.responseText);
           if (opt.dataType === 'json') {
             if (!response.length) {
               throw new InvalidResponseError('Server response was empty.');
@@ -111,7 +144,7 @@ export class HttpRequester {
         } else {
           let errObj;
           try {
-            errObj = JSON.parse(that._filterPhpMessages(this.responseText));
+            errObj = JSON.parse(HttpRequester.filterPhpMessages(this.responseText));
           } catch (e) {
             if (!(e instanceof SyntaxError)) {
               throw e;
@@ -127,35 +160,6 @@ export class HttpRequester {
         }
       }
     };
-  }
-
-  _makeUrl(url, data, noSep) {
-    if (!data) {
-      return url;
-    }
-    for (let k in data) {
-      if (data.hasOwnProperty(k)) {
-        if (noSep) {
-          url = url + (url.length ? '&' : '');
-        } else {
-          url = url + (url.indexOf('?') !== -1 ? '&' : '?');
-        }
-        url = url + encodeURIComponent(k) + '=' + encodeURIComponent(data[k]);
-      }
-    }
-    return url;
-  }
-
-  _filterPhpMessages(text) {
-    const phpMessages = /<br \/>\n(<b>[\w ]+<\/b>:.*?)<br \/>\n/gm;
-    if (text.match(phpMessages)) {
-      let match;
-      while ((match = phpMessages.exec(text)) !== null) {
-        console.log('PHP Message:', match[1].replace(/<\/?b>/g, ''));
-      }
-      text = text.replace(phpMessages, '');
-    }
-    return text;
   }
 }
 

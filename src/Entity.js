@@ -17,8 +17,10 @@ export class Entity {
     this.guid = null;
     this.cdate = null;
     this.mdate = null;
+    this.originalTags = [];
     this.tags = [];
     this.data = {};
+    this.dirty = {};
     this.isASleepingReference = false;
     this.sleepingReference = false;
     this.readyPromise = null;
@@ -55,11 +57,14 @@ export class Entity {
     this.guid = entityData.guid;
     this.cdate = entityData.cdate;
     this.mdate = entityData.mdate;
+    this.originalTags = entityData.tags.slice(0);
     this.tags = entityData.tags;
     this.data = entityData.data;
-    if (!(entityData instanceof Entity)) {
-      for (let k in this.data) {
-        if (this.data.hasOwnProperty(k)) {
+    this.dirty = {};
+    for (let k in this.data) {
+      if (this.data.hasOwnProperty(k)) {
+        this.dirty[k] = false;
+        if (!(entityData instanceof Entity)) {
           this.data[k] = getSleepingReference(this.data[k]);
         }
       }
@@ -110,7 +115,9 @@ export class Entity {
     this.tags = newTags;
   }
 
-  // Property getter and setter. You can also just access Entity.data directly.
+  // Property getter, setter, and unsetter. You can also just access Entity.data
+  // directly, but `set` and `unset` will update the dirty map for patching
+  // support.
   get(name = null) {
     if (this.isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
@@ -118,7 +125,9 @@ export class Entity {
     if (Array.isArray(name)) {
       const result = {};
       for (let i = 0; i < name.length; i++) {
-        result[name[i]] = this.data[name[i]];
+        if (this.data.hasOwnProperty(name[i])) {
+          result[name[i]] = this.data[name[i]];
+        }
       }
       return result;
     } else if (name == null) {
@@ -135,11 +144,30 @@ export class Entity {
     if (typeof name === 'object') {
       for (let k in name) {
         if (name.hasOwnProperty(k)) {
+          this.dirty[k] = true;
           this.data[k] = name[k];
         }
       }
     } else {
+      this.dirty[name] = true;
       this.data[name] = value;
+    }
+  }
+
+  unset(name) {
+    if (this.isASleepingReference) {
+      throw new EntityIsSleepingReferenceError(sleepErr);
+    }
+    if (Array.isArray(name)) {
+      for (let i = 0; i < name.length; i++) {
+        if (this.data.hasOwnProperty(name[i])) {
+          this.dirty[name[i]] = true;
+          delete this.data[name[i]];
+        }
+      }
+    } else {
+      this.dirty[name] = true;
+      delete this.data[name];
     }
   }
 
@@ -148,6 +176,13 @@ export class Entity {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
     return Nymph.saveEntity(this);
+  }
+
+  patch() {
+    if (this.isASleepingReference) {
+      throw new EntityIsSleepingReferenceError(sleepErr);
+    }
+    return Nymph.patchEntity(this);
   }
 
   delete() {
@@ -284,6 +319,32 @@ export class Entity {
     }
     obj.class = this.constructor.class;
     return obj;
+  }
+
+  getPatch() {
+    if (this.isASleepingReference) {
+      throw new EntityIsSleepingReferenceError(sleepErr);
+    }
+    const patch = {
+      guid: this.guid,
+      class: this.constructor.class,
+      addTags: this.tags.filter(tag => this.originalTags.indexOf(tag) === -1),
+      removeTags: this.originalTags.filter(tag => this.tags.indexOf(tag) === -1),
+      unset: [],
+      set: {}
+    };
+
+    for (let k in this.dirty) {
+      if (this.dirty.hasOwnProperty(k) && this.dirty[k]) {
+        if (this.data.hasOwnProperty(k)) {
+          patch.set[k] = getDataReference(this.data[k]);
+        } else {
+          patch.unset.push(k);
+        }
+      }
+    }
+
+    return patch;
   }
 
   toReference() {

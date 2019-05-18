@@ -83,35 +83,63 @@ export class Nymph {
     } else {
       method = entity.guid == null ? 'POST' : 'PUT';
     }
-    return requester[method]({
-      url: this.restURL,
-      dataType: 'json',
-      data: {
-        action: _plural ? 'entities' : 'entity',
-        data: JSON.stringify(entity),
-      },
-    }).then(data => {
-      if (_plural && entity.length === data.length) {
-        for (let i = 0; i < data.length; i++) {
-          if (
-            typeof data[i].guid !== 'undefined' &&
-            data[i].guid > 0 &&
-            (entity[i].guid == null || entity[i].guid === data[i].guid)
-          ) {
-            entity[i].init(data[i]);
-          }
-        }
-        return entity;
-      } else if (typeof data.guid !== 'undefined' && data.guid > 0) {
-        return entity.init(data);
-      } else {
-        return Promise.reject({ textStatus: 'Server error' });
-      }
-    });
+    return this._requestWithMethod(entity, method, entity, _plural);
   }
 
   static saveEntities(entities) {
     return this.saveEntity(entities, true);
+  }
+
+  static patchEntity(entity, _plural) {
+    let patch;
+
+    if (_plural) {
+      entity.forEach(cur => {
+        if (cur.guid == null) {
+          throw new InvalidRequestError(
+            'Due to REST restriction, you can only create new entities or ' +
+              'update existing entities, not both at the same time.'
+          );
+        }
+      });
+      patch = entity.map(e => e.getPatch());
+    } else {
+      patch = entity.getPatch();
+    }
+
+    return this._requestWithMethod(entity, 'PATCH', patch, _plural);
+  }
+
+  static patchEntities(entities) {
+    return this.patchEntity(entities, true);
+  }
+
+  static _requestWithMethod(entity, method, data, plural) {
+    return requester[method]({
+      url: this.restURL,
+      dataType: 'json',
+      data: {
+        action: plural ? 'entities' : 'entity',
+        data: JSON.stringify(data),
+      },
+    }).then(response => {
+      if (plural && entity.length === response.length) {
+        for (let i = 0; i < response.length; i++) {
+          if (
+            typeof response[i].guid !== 'undefined' &&
+            response[i].guid > 0 &&
+            (entity[i].guid == null || entity[i].guid === response[i].guid)
+          ) {
+            entity[i].init(response[i]);
+          }
+        }
+        return entity;
+      } else if (typeof response.guid !== 'undefined' && response.guid > 0) {
+        return entity.init(response);
+      } else {
+        return Promise.reject({ textStatus: 'Server error' });
+      }
+    });
   }
 
   static getEntity(options, ...selectors) {
