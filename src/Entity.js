@@ -329,9 +329,11 @@ export class Entity {
       guid: this.guid,
       class: this.constructor.class,
       addTags: this.tags.filter(tag => this.originalTags.indexOf(tag) === -1),
-      removeTags: this.originalTags.filter(tag => this.tags.indexOf(tag) === -1),
+      removeTags: this.originalTags.filter(
+        tag => this.tags.indexOf(tag) === -1
+      ),
       unset: [],
-      set: {}
+      set: {},
     };
 
     for (let k in this.dirty) {

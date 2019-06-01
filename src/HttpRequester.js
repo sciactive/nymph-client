@@ -144,7 +144,9 @@ export class HttpRequester {
         } else {
           let errObj;
           try {
-            errObj = JSON.parse(HttpRequester.filterPhpMessages(this.responseText));
+            errObj = JSON.parse(
+              HttpRequester.filterPhpMessages(this.responseText)
+            );
           } catch (e) {
             if (!(e instanceof SyntaxError)) {
               throw e;
