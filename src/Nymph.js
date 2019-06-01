@@ -332,8 +332,6 @@ export class Nymph {
   }
 }
 
-// The current version of Nymph Client.
-Nymph.version = '4.0.0-beta.18';
 Nymph.entityClasses = {};
 Nymph.responseCallbacks = [];
 
