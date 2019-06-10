@@ -102,9 +102,9 @@ export class Nymph {
           );
         }
       });
-      patch = entity.map(e => e.getPatch());
+      patch = entity.map(e => e.$getPatch());
     } else {
-      patch = entity.getPatch();
+      patch = entity.$getPatch();
     }
 
     return this._requestWithMethod(entity, 'PATCH', patch, _plural);
@@ -130,12 +130,12 @@ export class Nymph {
             response[i].guid > 0 &&
             (entity[i].guid == null || entity[i].guid === response[i].guid)
           ) {
-            entity[i].init(response[i]);
+            entity[i].$init(response[i]);
           }
         }
         return entity;
       } else if (typeof response.guid !== 'undefined' && response.guid > 0) {
-        return entity.init(response);
+        return entity.$init(response);
       } else {
         return Promise.reject({ textStatus: 'Server error' });
       }
@@ -200,7 +200,7 @@ export class Nymph {
       );
     }
     const entity = new EntityClass();
-    return entity.init(entityJSON);
+    return entity.$init(entityJSON);
   }
 
   static initEntitiesFromData(item) {

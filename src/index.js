@@ -1,6 +1,13 @@
 import { Nymph, ClassNotAvailableError, InvalidRequestError } from './Nymph';
-import { InvalidResponseError } from './HttpRequester';
-import { Entity, EntityIsSleepingReferenceError } from './Entity';
+import {
+  InvalidResponseError,
+  ClientError,
+  ServerError,
+} from './HttpRequester';
+import {
+  Entity,
+  EntityIsSleepingReferenceError,
+} from './Entity';
 import { PubSub, PubSubSubscription } from './PubSub';
 
 export {
@@ -8,6 +15,8 @@ export {
   ClassNotAvailableError,
   InvalidRequestError,
   InvalidResponseError,
+  ClientError,
+  ServerError,
   Entity,
   EntityIsSleepingReferenceError,
   PubSub,

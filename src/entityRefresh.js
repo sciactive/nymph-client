@@ -4,9 +4,9 @@ import { Entity } from './Entity';
 export function saveEntities(entity) {
   let savedEntities = {};
 
-  for (let k in entity.data) {
-    if (entity.data.hasOwnProperty(k)) {
-      addEntitiesToObject(entity.data[k], savedEntities);
+  for (let k in entity.$data) {
+    if (entity.$data.hasOwnProperty(k)) {
+      addEntitiesToObject(entity.$data[k], savedEntities);
     }
   }
 
@@ -14,7 +14,7 @@ export function saveEntities(entity) {
 }
 
 const addEntitiesToObject = (item, entitiesObject) => {
-  if (item instanceof Entity && !item.isASleepingReference) {
+  if (item instanceof Entity && !item.$isASleepingReference) {
     // Convert entities to references.
     entitiesObject[item.guid] = item;
   } else if (Array.isArray(item)) {
@@ -37,10 +37,10 @@ export function restoreEntities(entity, savedEntities) {
     containsSleepingReference: false,
   };
 
-  for (let k in entity.data) {
-    if (entity.data.hasOwnProperty(k)) {
-      entity.data[k] = retoreEntitiesFromObject(
-        entity.data[k],
+  for (let k in entity.$data) {
+    if (entity.$data.hasOwnProperty(k)) {
+      entity.$data[k] = retoreEntitiesFromObject(
+        entity.$data[k],
         savedEntities,
         data
       );
@@ -52,7 +52,7 @@ export function restoreEntities(entity, savedEntities) {
 
 const retoreEntitiesFromObject = (item, entitiesObject, data) => {
   if (item instanceof Entity) {
-    if (item.isASleepingReference) {
+    if (item.$isASleepingReference) {
       if (item.guid in entitiesObject) {
         return entitiesObject[item.guid];
       } else {

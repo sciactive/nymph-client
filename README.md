@@ -69,13 +69,11 @@ import Todo from 'Todo';
 
 // Now you can use Nymph and PubSub.
 const myTodo = new Todo();
-myTodo.set({
-  name: 'This is a new todo!',
-  done: false
-});
-await myTodo.save();
+myTodo.name = 'This is a new todo!';
+myTodo.done = false;
+await myTodo.$save();
 
-let subscription = myTodo.subscribe(() => {
+let subscription = myTodo.$subscribe(() => {
   // When this is called, the entity will already contain new data from the
   // publish event. If the entity is deleted, the GUID will be set to null.
   if (myTodo.guid != null) {

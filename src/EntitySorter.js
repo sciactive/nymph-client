@@ -13,19 +13,14 @@ export class EntitySorter {
   _arraySortProperty(a, b) {
     let prop = this.sortProperty;
     let parent = this.sortParent;
-    let notData = prop === 'guid' || prop === 'cdate' || prop === 'mdate';
     const Entity = Nymph.getEntityClass('Nymph\\Entity');
     if (
       parent != null &&
-      a.data[parent] instanceof Entity &&
-      b.data[parent] instanceof Entity
+      a[parent] instanceof Entity &&
+      b[parent] instanceof Entity
     ) {
-      const aParentProp = notData
-        ? a.data[parent][prop]
-        : a.data[parent].data[prop];
-      const bParentProp = notData
-        ? b.data[parent][prop]
-        : b.data[parent].data[prop];
+      const aParentProp = a[parent][prop];
+      const bParentProp = b[parent][prop];
       if (
         typeof aParentProp !== 'undefined' ||
         typeof bParentProp !== 'undefined'
@@ -51,8 +46,8 @@ export class EntitySorter {
       }
     }
     // If they have the same parent, order them by their own prop.
-    const aProp = notData ? a[prop] : a.data[prop];
-    const bProp = notData ? b[prop] : b.data[prop];
+    const aProp = a[prop];
+    const bProp = b[prop];
     if (
       !this.sortCaseSensitive &&
       typeof aProp === 'string' &&
@@ -89,11 +84,9 @@ export class EntitySorter {
         // Must break after adding one, so any following children don't go in
         // the wrong order.
         if (
-          this.array[key].data[parentProperty] == null ||
-          typeof this.array[key].data[parentProperty].inArray !== 'function' ||
-          !this.array[key].data[parentProperty].inArray(
-            newArray.concat(this.array)
-          )
+          this.array[key][parentProperty] == null ||
+          typeof this.array[key][parentProperty].$inArray !== 'function' ||
+          !this.array[key][parentProperty].$inArray(newArray.concat(this.array))
         ) {
           // If they have no parent (or their parent isn't in the array), they
           // go on the end.
@@ -103,20 +96,16 @@ export class EntitySorter {
           break;
         } else {
           // Else find the parent.
-          const pkey = this.array[key].data[parentProperty].arraySearch(
-            newArray
-          );
+          const pkey = this.array[key][parentProperty].$arraySearch(newArray);
           if (pkey !== false) {
             // And insert after the parent.
             // This makes entities go to the end of the child list.
-            const ancestry = [this.array[key].data[parentProperty].guid];
+            const ancestry = [this.array[key][parentProperty].guid];
             let newKey = Number(pkey);
             while (
               typeof newArray[newKey + 1] !== 'undefined' &&
-              newArray[newKey + 1].data[parentProperty] != null &&
-              ancestry.indexOf(
-                newArray[newKey + 1].data[parentProperty].guid
-              ) !== -1
+              newArray[newKey + 1][parentProperty] != null &&
+              ancestry.indexOf(newArray[newKey + 1][parentProperty].guid) !== -1
             ) {
               ancestry.push(newArray[newKey + 1].guid);
               newKey += 1;

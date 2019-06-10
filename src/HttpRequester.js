@@ -158,7 +158,11 @@ export class HttpRequester {
             };
           }
           errObj.status = this.status;
-          error(errObj);
+          error(
+            this.status < 500
+              ? new ClientError(errObj)
+              : new ServerError(errObj)
+          );
         }
       }
     };
@@ -169,6 +173,22 @@ export class InvalidResponseError extends Error {
   constructor(message) {
     super(message);
     this.name = 'InvalidResponseError';
+  }
+}
+
+export class ClientError extends Error {
+  constructor(errObj) {
+    super(errObj.textStatus);
+    this.name = 'ClientError';
+    Object.assign(this, errObj);
+  }
+}
+
+export class ServerError extends Error {
+  constructor(errObj) {
+    super(errObj.textStatus);
+    this.name = 'ServerError';
+    Object.assign(this, errObj);
   }
 }
 

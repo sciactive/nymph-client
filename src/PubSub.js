@@ -85,7 +85,7 @@ export class PubSub {
       return promise;
     };
 
-    Entity.prototype.subscribe = function(resolve, reject, count) {
+    Entity.prototype.$subscribe = function(resolve, reject, count) {
       if (!this.guid) {
         return false;
       }
@@ -100,7 +100,7 @@ export class PubSub {
         if (Array.isArray(args)) {
           myArray = args;
           if (myArray.length) {
-            this.init(myArray[0]);
+            this.$init(myArray[0]);
           }
         } else {
           myArray = [this];
@@ -439,7 +439,7 @@ export class PubSub {
             remove.push(k);
           } else if (newArr[idMap[oldArr[k].guid]].mdate !== oldArr[k].mdate) {
             // It was modified.
-            oldArr[k].init(newArr[idMap[oldArr[k].guid]].toJSON());
+            oldArr[k].$init(newArr[idMap[oldArr[k].guid]].toJSON());
             delete idMap[oldArr[k].guid];
           } else {
             // Item wasn't modified.
@@ -484,7 +484,7 @@ export class PubSub {
         // Extract it from the array.
         for (let i = 0; i < oldArr.length; i++) {
           if (oldArr[i] != null && oldArr[i].guid === update.updated) {
-            entity = oldArr.splice(i, 1)[0].init(update.data);
+            entity = oldArr.splice(i, 1)[0].$init(update.data);
           }
         }
       }

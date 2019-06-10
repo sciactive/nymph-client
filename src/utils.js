@@ -17,10 +17,10 @@ export function uniqueStrings(array) {
 export function getDataReference(item) {
   if (
     item instanceof Nymph.getEntityClass('Nymph\\Entity') &&
-    typeof item.toReference === 'function'
+    typeof item.$toReference === 'function'
   ) {
     // Convert entities to references.
-    return item.toReference();
+    return item.$toReference();
   } else if (Array.isArray(item)) {
     // Recurse into lower arrays.
     return item.map(getDataReference);
@@ -53,7 +53,7 @@ export function getSleepingReference(item) {
         throw new ClassNotAvailableError(item[2] + ' class cannot be found.');
       }
       const entity = new EntityClass();
-      entity.referenceSleep(item);
+      entity.$referenceSleep(item);
       return entity;
     } else {
       // Recurse into lower arrays.
