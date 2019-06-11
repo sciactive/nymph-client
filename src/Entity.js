@@ -28,7 +28,7 @@ export class Entity {
         if (this.$isASleepingReference) {
           throw new EntityIsSleepingReferenceError(sleepErr);
         }
-        if (name in data) {
+        if (data.hasOwnProperty(name)) {
           return data[name];
         }
         return undefined;
@@ -47,7 +47,7 @@ export class Entity {
         if (this.$isASleepingReference) {
           throw new EntityIsSleepingReferenceError(sleepErr);
         }
-        if (name in data) {
+        if (data.hasOwnProperty(name)) {
           this.$dirty[name] = true;
           delete data[name];
         }
@@ -68,14 +68,14 @@ export class Entity {
 
     const ProxyHandler = {
       has(entity, name) {
-        if (name in entity) {
-          return true;
+        if (name in entity || name.substr(0, 1) === '$') {
+          return name in entity;
         }
         return name in entity.$data;
       },
 
       get(entity, name) {
-        if (name in entity) {
+        if (name in entity || name.substr(0, 1) === '$') {
           return entity[name];
         }
         if (name in entity.$data) {
@@ -110,11 +110,11 @@ export class Entity {
   }
 
   static serverCallStatic(method, params) {
-    // Turn the params into a real array, in case an arguments object was
-    // passed.
     return Nymph.serverCallStatic(
       this.class,
       method,
+      // Turn the params into a real array, in case an arguments object was
+      // passed.
       Array.prototype.slice.call(params)
     ).then(data => data.return);
   }
@@ -132,22 +132,16 @@ export class Entity {
     this.mdate = entityData.mdate;
     this.tags = entityData.tags;
     this.$originalTags = entityData.tags.slice(0);
+    this.$dirty = {};
     this.$data = new Proxy(
-      Object.assign(
-        {},
-        entityData instanceof Entity ? entityData.$data : entityData.data
+      Object.fromEntries(
+        Object.entries(entityData.data).map(([key, value]) => {
+          this.$dirty[key] = false;
+          return [key, getSleepingReference(value)];
+        })
       ),
       this.$dataHandler
     );
-    this.$dirty = {};
-    for (let k in this.$data) {
-      if (this.$data.hasOwnProperty(k)) {
-        if (!(entityData instanceof Entity)) {
-          this.$data[k] = getSleepingReference(this.$data[k]);
-        }
-        this.$dirty[k] = false;
-      }
-    }
 
     return this;
   }
@@ -263,18 +257,7 @@ export class Entity {
   }
 
   $inArray(array, strict) {
-    if (this.$isASleepingReference) {
-      throw new EntityIsSleepingReferenceError(sleepErr);
-    }
-    if (!Array.isArray(array)) {
-      return false;
-    }
-    for (let i = 0; i < array.length; i++) {
-      if (strict ? this.$equals(array[i]) : this.$is(array[i])) {
-        return true;
-      }
-    }
-    return false;
+    return this.$arraySearch(array, strict) !== false;
   }
 
   $arraySearch(array, strict) {
@@ -310,15 +293,17 @@ export class Entity {
     ).then(data => this.$init(data));
   }
 
-  $serverCall(method, params, dontUpdateAfterCall) {
+  // Stateless means the server will not return the data in the entity after
+  // calling the method.
+  $serverCall(method, params, stateless) {
     if (this.$isASleepingReference) {
       throw new EntityIsSleepingReferenceError(sleepErr);
     }
     // Turn the params into a real array, in case an arguments object was
     // passed.
     const paramArray = Array.prototype.slice.call(params);
-    return Nymph.serverCall(this, method, paramArray).then(data => {
-      if (!dontUpdateAfterCall) {
+    return Nymph.serverCall(this, method, paramArray, stateless).then(data => {
+      if (!stateless) {
         this.$init(data.entity);
       }
       return data.return;
@@ -335,10 +320,8 @@ export class Entity {
     obj.mdate = this.mdate;
     obj.tags = this.tags.slice(0);
     obj.data = {};
-    for (let k in this.$data) {
-      if (this.$data.hasOwnProperty(k)) {
-        obj.data[k] = getDataReference(this.$data[k]);
-      }
+    for (let [key, value] of Object.entries(this.$data)) {
+      obj.data[key] = getDataReference(value);
     }
     obj.class = this.constructor.class;
     return obj;
@@ -359,12 +342,12 @@ export class Entity {
       set: {},
     };
 
-    for (let k in this.$dirty) {
-      if (this.$dirty.hasOwnProperty(k) && this.$dirty[k]) {
-        if (this.$data.hasOwnProperty(k)) {
-          patch.set[k] = getDataReference(this.$data[k]);
+    for (let [key, dirty] of Object.entries(this.$dirty)) {
+      if (dirty) {
+        if (key in this.$data) {
+          patch.set[key] = getDataReference(this.$data[key]);
         } else {
-          patch.unset.push(k);
+          patch.unset.push(key);
         }
       }
     }
@@ -428,22 +411,16 @@ export class Entity {
         }
         const promises = [];
         // Go through data looking for entities to ready.
-        for (let k in this.$data) {
-          if (!this.$data.hasOwnProperty(k)) {
-            continue;
-          }
-          if (
-            this.$data[k] instanceof Entity &&
-            this.$data[k].$isASleepingReference
-          ) {
-            promises.push(this.$data[k].$readyAll(newLevel));
-          } else if (Array.isArray(this.$data[k])) {
-            for (let i = 0; i < this.$data[k].length; i++) {
+        for (let [key, value] of Object.entries(this.$data)) {
+          if (value instanceof Entity && value.$isASleepingReference) {
+            promises.push(value.$readyAll(newLevel));
+          } else if (Array.isArray(value)) {
+            for (let i = 0; i < value.length; i++) {
               if (
-                this.$data[k][i] instanceof Entity &&
-                this.$data[k][i].$isASleepingReference
+                value[i] instanceof Entity &&
+                value[i].$isASleepingReference
               ) {
-                promises.push(this.$data[k][i].$readyAll(newLevel));
+                promises.push(value[i].$readyAll(newLevel));
               }
             }
           }

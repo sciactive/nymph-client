@@ -33,10 +33,8 @@ export function getDataReference(item) {
       F.prototype = item;
       newObj = new F();
     }
-    for (let k in item) {
-      if (item.hasOwnProperty(k)) {
-        newObj[k] = getDataReference(item[k]);
-      }
+    for (let [key, value] of Object.entries(item)) {
+      newObj[key] = getDataReference(value);
     }
     return newObj;
   }
@@ -63,10 +61,8 @@ export function getSleepingReference(item) {
     item instanceof Object &&
     !(item instanceof Nymph.getEntityClass('Nymph\\Entity'))
   ) {
-    for (let k in item) {
-      if (item.hasOwnProperty(k)) {
-        item[k] = getSleepingReference(item[k]);
-      }
+    for (let [key, value] of Object.entries(item)) {
+      item[key] = getSleepingReference(value);
     }
   }
   // Not an array, just return it.
@@ -76,12 +72,7 @@ export function getSleepingReference(item) {
 export function sortObj(obj) {
   // adapted from
   // http://am.aurlien.net/post/1221493460/sorting-javascript-objects
-  const tempArray = [];
-  for (let key in obj) {
-    if (obj.hasOwnProperty(key)) {
-      tempArray.push(key);
-    }
-  }
+  const tempArray = Object.keys(obj);
   tempArray.sort();
   const tempObj = {};
   for (let i = 0; i < tempArray.length; i++) {

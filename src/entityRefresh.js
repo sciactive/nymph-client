@@ -4,10 +4,8 @@ import { Entity } from './Entity';
 export function saveEntities(entity) {
   let savedEntities = {};
 
-  for (let k in entity.$data) {
-    if (entity.$data.hasOwnProperty(k)) {
-      addEntitiesToObject(entity.$data[k], savedEntities);
-    }
+  for (let [key, value] of Object.entries(entity.$data)) {
+    addEntitiesToObject(value, savedEntities);
   }
 
   return savedEntities;
@@ -21,10 +19,8 @@ const addEntitiesToObject = (item, entitiesObject) => {
     // Recurse into lower arrays.
     item.forEach(item => addEntitiesToObject(item, entitiesObject));
   } else if (item instanceof Object) {
-    for (let k in item) {
-      if (item.hasOwnProperty(k)) {
-        addEntitiesToObject(item[k], entitiesObject);
-      }
+    for (let [key, value] of Object.entries(item)) {
+      addEntitiesToObject(value, entitiesObject);
     }
   }
 };
@@ -37,14 +33,8 @@ export function restoreEntities(entity, savedEntities) {
     containsSleepingReference: false,
   };
 
-  for (let k in entity.$data) {
-    if (entity.$data.hasOwnProperty(k)) {
-      entity.$data[k] = retoreEntitiesFromObject(
-        entity.$data[k],
-        savedEntities,
-        data
-      );
-    }
+  for (let [key, value] of Object.entries(entity.$data)) {
+    entity.$data[key] = retoreEntitiesFromObject(value, savedEntities, data);
   }
 
   return data.containsSleepingReference;
@@ -53,7 +43,7 @@ export function restoreEntities(entity, savedEntities) {
 const retoreEntitiesFromObject = (item, entitiesObject, data) => {
   if (item instanceof Entity) {
     if (item.$isASleepingReference) {
-      if (item.guid in entitiesObject) {
+      if (entitiesObject.hasOwnProperty(item.guid)) {
         return entitiesObject[item.guid];
       } else {
         // Couldn't find the entity in saved entities.
@@ -70,10 +60,8 @@ const retoreEntitiesFromObject = (item, entitiesObject, data) => {
       retoreEntitiesFromObject(item, entitiesObject, data)
     );
   } else if (item instanceof Object) {
-    for (let k in item) {
-      if (item.hasOwnProperty(k)) {
-        item[k] = retoreEntitiesFromObject(item[k], entitiesObject, data);
-      }
+    for (let [key, value] of Object.entries(item)) {
+      item[key] = retoreEntitiesFromObject(value, entitiesObject, data);
     }
     return item;
   }

@@ -124,16 +124,14 @@ export class Nymph {
       },
     }).then(response => {
       if (plural && entity.length === response.length) {
-        for (let i = 0; i < response.length; i++) {
-          if (
-            typeof response[i].guid !== 'undefined' &&
-            response[i].guid > 0 &&
-            (entity[i].guid == null || entity[i].guid === response[i].guid)
-          ) {
-            entity[i].$init(response[i]);
-          }
-        }
-        return entity;
+        return entity.map((e, i) =>
+          response[i] &&
+          typeof response[i].guid !== 'undefined' &&
+          response[i].guid > 0 &&
+          (e.guid == null || e.guid === response[i].guid)
+            ? e.$init(response[i])
+            : e
+        );
       } else if (typeof response.guid !== 'undefined' && response.guid > 0) {
         return entity.$init(response);
       } else {
@@ -188,7 +186,7 @@ export class Nymph {
         if (options.return && options.return === 'guid') {
           return data;
         }
-        return data.map(this.initEntity.bind(this));
+        return data.map(e => this.initEntity(e));
       });
   }
 
@@ -213,19 +211,17 @@ export class Nymph {
     ) {
       if (
         item.hasOwnProperty('class') &&
-        Nymph.getEntityClass(item.class) &&
         item.hasOwnProperty('guid') &&
         item.hasOwnProperty('cdate') &&
         item.hasOwnProperty('mdate') &&
         item.hasOwnProperty('tags') &&
-        item.hasOwnProperty('data')
+        item.hasOwnProperty('data') &&
+        Nymph.getEntityClass(item.class)
       ) {
         return this.initEntity(item);
       } else {
-        for (let k in item) {
-          if (item.hasOwnProperty(k)) {
-            item[k] = this.initEntitiesFromData(item[k]);
-          }
+        for (let [key, value] of Object.entries(item)) {
+          item[key] = this.initEntitiesFromData(value);
         }
       }
     }
@@ -234,22 +230,12 @@ export class Nymph {
   }
 
   static deleteEntity(entity, _plural) {
-    let jsonData, cur;
-    if (_plural) {
-      jsonData = [];
-      for (let i = 0; i < entity.length; i++) {
-        cur = entity[i].toJSON();
-        jsonData.push(cur);
-      }
-    } else {
-      jsonData = entity.toJSON();
-    }
     return requester.DELETE({
       url: this.restURL,
       dataType: 'json',
       data: {
         action: _plural ? 'entities' : 'entity',
-        data: JSON.stringify(jsonData),
+        data: JSON.stringify(entity),
       },
     });
   }
@@ -258,7 +244,7 @@ export class Nymph {
     return this.deleteEntity(entities, true);
   }
 
-  static serverCall(entity, method, params) {
+  static serverCall(entity, method, params, stateless) {
     return requester
       .POST({
         url: this.restURL,
@@ -266,13 +252,17 @@ export class Nymph {
         data: {
           action: 'method',
           data: JSON.stringify({
-            entity: entity,
-            method: method,
+            entity,
+            method,
             params: getDataReference(params),
           }),
+          stateless,
         },
       })
-      .then(data => this.initEntitiesFromData(data));
+      .then(data => ({
+        ...data,
+        return: this.initEntitiesFromData(data.return),
+      }));
   }
 
   static serverCallStatic(className, method, params) {

@@ -5,15 +5,13 @@ export class HttpRequester {
     if (!data) {
       return url;
     }
-    for (let k in data) {
-      if (data.hasOwnProperty(k)) {
-        if (noSep) {
-          url = url + (url.length ? '&' : '');
-        } else {
-          url = url + (url.indexOf('?') !== -1 ? '&' : '?');
-        }
-        url = url + encodeURIComponent(k) + '=' + encodeURIComponent(data[k]);
+    for (let [key, value] of Object.entries(data)) {
+      if (noSep) {
+        url = url + (url.length ? '&' : '');
+      } else {
+        url = url + (url.indexOf('?') !== -1 ? '&' : '?');
       }
+      url = url + encodeURIComponent(key) + '=' + encodeURIComponent(value);
     }
     return url;
   }

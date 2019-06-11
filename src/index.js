@@ -4,10 +4,7 @@ import {
   ClientError,
   ServerError,
 } from './HttpRequester';
-import {
-  Entity,
-  EntityIsSleepingReferenceError,
-} from './Entity';
+import { Entity, EntityIsSleepingReferenceError } from './Entity';
 import { PubSub, PubSubSubscription } from './PubSub';
 
 export {

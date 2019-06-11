@@ -459,10 +459,8 @@ export class PubSub {
         oldArr.splice(remove[n], 1);
       }
       // And add the new ones.
-      for (let v in idMap) {
-        if (idMap.hasOwnProperty(v)) {
-          oldArr.splice(oldArr.length, 0, newArr[idMap[v]]);
-        }
+      for (let [key, value] of Object.entries(idMap)) {
+        oldArr.splice(oldArr.length, 0, newArr[value]);
       }
     } else if (update != null && update.hasOwnProperty('query')) {
       if (update.hasOwnProperty('removed')) {
