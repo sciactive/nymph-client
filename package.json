@@ -1,6 +1,6 @@
 {
   "name": "nymph-client",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "Powerful object data storage and querying for collaborative web apps.",
   "main": "dist/NymphClient.js",
   "module": "src/index.js",
