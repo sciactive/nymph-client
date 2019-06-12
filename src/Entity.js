@@ -24,9 +24,18 @@ export class Entity {
     this.$sleepingReference = false;
     this.$readyPromise = null;
     this.$dataHandler = {
+      has(data, name) {
+        if (typeof name !== 'symbol' && this.$isASleepingReference) {
+          console.error(`Tried to check data on a sleeping reference: ${name}`);
+          return false;
+        }
+        return data.hasOwnProperty(name);
+      },
+
       get: (data, name) => {
-        if (this.$isASleepingReference) {
-          throw new EntityIsSleepingReferenceError(sleepErr);
+        if (typeof name !== 'symbol' && this.$isASleepingReference) {
+          console.error(`Tried to get data on a sleeping reference: ${name}`);
+          return undefined;
         }
         if (data.hasOwnProperty(name)) {
           return data[name];
@@ -35,17 +44,23 @@ export class Entity {
       },
 
       set: (data, name, value) => {
-        if (this.$isASleepingReference) {
-          throw new EntityIsSleepingReferenceError(sleepErr);
+        if (typeof name !== 'symbol' && this.$isASleepingReference) {
+          console.error(`Tried to set data on a sleeping reference: ${name}`);
+          return false;
         }
-        this.$dirty[name] = true;
+        if (typeof name !== 'symbol') {
+          this.$dirty[name] = true;
+        }
         data[name] = value;
         return true;
       },
 
       deleteProperty: (data, name) => {
-        if (this.$isASleepingReference) {
-          throw new EntityIsSleepingReferenceError(sleepErr);
+        if (typeof name !== 'symbol' && this.$isASleepingReference) {
+          console.error(
+            `Tried to delete data on a sleeping reference: ${name}`
+          );
+          return;
         }
         if (data.hasOwnProperty(name)) {
           this.$dirty[name] = true;
@@ -66,16 +81,24 @@ export class Entity {
       this.$ready();
     }
 
-    const ProxyHandler = {
+    return new Proxy(this, {
       has(entity, name) {
-        if (name in entity || name.substr(0, 1) === '$') {
+        if (
+          typeof name !== 'string' ||
+          name in entity ||
+          name.substring(0, 1) === '$'
+        ) {
           return name in entity;
         }
         return name in entity.$data;
       },
 
       get(entity, name) {
-        if (name in entity || name.substr(0, 1) === '$') {
+        if (
+          typeof name !== 'string' ||
+          name in entity ||
+          name.substring(0, 1) === '$'
+        ) {
           return entity[name];
         }
         if (name in entity.$data) {
@@ -85,7 +108,11 @@ export class Entity {
       },
 
       set(entity, name, value) {
-        if (name in entity || name.substr(0, 1) === '$') {
+        if (
+          typeof name !== 'string' ||
+          name in entity ||
+          name.substring(0, 1) === '$'
+        ) {
           entity[name] = value;
         } else {
           entity.$data[name] = value;
@@ -104,9 +131,7 @@ export class Entity {
       getPrototypeOf(entity) {
         return entity.constructor.prototype;
       },
-    };
-
-    return new Proxy(this, ProxyHandler);
+    });
   }
 
   static serverCallStatic(method, params) {
@@ -134,12 +159,15 @@ export class Entity {
     this.$originalTags = entityData.tags.slice(0);
     this.$dirty = {};
     this.$data = new Proxy(
-      Object.fromEntries(
-        Object.entries(entityData.data).map(([key, value]) => {
+      Object.entries(entityData.data)
+        .map(([key, value]) => {
           this.$dirty[key] = false;
-          return [key, getSleepingReference(value)];
+          return { key, value: getSleepingReference(value) };
         })
-      ),
+        .reduce(
+          (obj, { key, value }) => Object.assign(obj, { [key]: value }),
+          {}
+        ),
       this.$dataHandler
     );
 
