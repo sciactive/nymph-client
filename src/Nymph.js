@@ -244,7 +244,7 @@ export class Nymph {
     return this.deleteEntity(entities, true);
   }
 
-  static serverCall(entity, method, params, stateless) {
+  static serverCall(entity, method, params, stateless = false) {
     return requester
       .POST({
         url: this.restURL,
@@ -253,10 +253,10 @@ export class Nymph {
           action: 'method',
           data: JSON.stringify({
             entity,
+            stateless,
             method,
             params: getDataReference(params),
           }),
-          stateless,
         },
       })
       .then(data => ({
