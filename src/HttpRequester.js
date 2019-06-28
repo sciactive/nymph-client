@@ -1,17 +1,17 @@
 'use strict';
 
 export class HttpRequester {
-  static makeUrl(url, data, noSep) {
+  static makeUrl(url, data) {
     if (!data) {
       return url;
     }
     for (let [key, value] of Object.entries(data)) {
-      if (noSep) {
-        url = url + (url.length ? '&' : '');
-      } else {
-        url = url + (url.indexOf('?') !== -1 ? '&' : '?');
-      }
-      url = url + encodeURIComponent(key) + '=' + encodeURIComponent(value);
+      url =
+        url +
+        (url.indexOf('?') !== -1 ? '&' : '?') +
+        encodeURIComponent(key) +
+        '=' +
+        encodeURIComponent(JSON.stringify(value));
     }
     return url;
   }
@@ -28,8 +28,10 @@ export class HttpRequester {
     return text;
   }
 
-  constructor() {
+  constructor(ponyFetch) {
+    this.fetch = ponyFetch ? ponyFetch : (...args) => fetch(...args);
     this._xsrfToken = null;
+    this.requestCallbacks = [];
     this.responseCallbacks = [];
   }
 
@@ -57,113 +59,98 @@ export class HttpRequester {
   }
 
   GET(opt) {
-    return new Promise((resolve, reject) => {
-      let request = new XMLHttpRequest();
-      request.open('GET', HttpRequester.makeUrl(opt.url, opt.data), true);
-
-      request.onreadystatechange = this._onReadyStateChange(
-        opt,
-        resolve,
-        reject
-      );
-
-      if (this._xsrfToken !== null) {
-        request.setRequestHeader('X-Xsrf-Token', this._xsrfToken);
-      }
-      request.send();
-    });
+    return this._httpRequest('GET', opt);
   }
 
   POST(opt) {
-    return this._httpWriteRequest({ type: 'POST', ...opt });
+    return this._httpRequest('POST', opt);
   }
 
   PUT(opt) {
-    return this._httpWriteRequest({ type: 'PUT', ...opt });
+    return this._httpRequest('PUT', opt);
   }
 
   PATCH(opt) {
-    return this._httpWriteRequest({ type: 'PATCH', ...opt });
+    return this._httpRequest('PATCH', opt);
   }
 
   DELETE(opt) {
-    return this._httpWriteRequest({ type: 'DELETE', ...opt });
+    return this._httpRequest('DELETE', opt);
   }
 
-  _httpWriteRequest(opt) {
-    return new Promise((resolve, reject) => {
-      let request = new XMLHttpRequest();
-      request.open(opt.type, opt.url, true);
+  _httpRequest(method, opt) {
+    const url =
+      method === 'GET' ? HttpRequester.makeUrl(opt.url, opt.data) : opt.url;
+    const options = {
+      method,
+      headers: {},
+    };
 
-      request.onreadystatechange = this._onReadyStateChange(
-        opt,
-        resolve,
-        reject
-      );
+    if (method !== 'GET' && opt.data) {
+      options.headers['Content-Type'] = 'application/json';
+      options.body = JSON.stringify(opt.data);
+    }
 
-      if (this._xsrfToken !== null) {
-        request.setRequestHeader('X-Xsrf-Token', this._xsrfToken);
-      }
-      request.setRequestHeader(
-        'Content-Type',
-        'application/x-www-form-urlencoded; charset=UTF-8'
-      );
-      request.send(HttpRequester.makeUrl('', opt.data, true));
-    });
-  }
+    for (let i = 0; i < this.requestCallbacks.length; i++) {
+      this.requestCallbacks[i] && this.requestCallbacks[i](this, url, options);
+    }
 
-  _onReadyStateChange(opt, success, error) {
-    let that = this;
+    if (this._xsrfToken !== null) {
+      options.headers['X-Xsrf-Token'] = this._xsrfToken;
+    }
 
-    return function() {
-      if (this.readyState === 4) {
-        for (let i = 0; i < that.responseCallbacks.length; i++) {
-          if (typeof that.responseCallbacks[i] !== 'undefined') {
-            that.responseCallbacks[i](that);
+    return this.fetch(url, options)
+      .then(response => {
+        if (response.ok) {
+          for (let i = 0; i < this.responseCallbacks.length; i++) {
+            this.responseCallbacks[i] &&
+              this.responseCallbacks[i](this, response);
           }
+          return response
+            .text()
+            .then(text => HttpRequester.filterPhpMessages(text));
         }
-        if (this.status >= 200 && this.status < 400) {
-          const response = HttpRequester.filterPhpMessages(this.responseText);
-          if (opt.dataType === 'json') {
-            if (!response.length) {
-              throw new InvalidResponseError('Server response was empty.');
-            }
-            try {
-              success(JSON.parse(response));
-            } catch (e) {
-              if (!(e instanceof SyntaxError)) {
-                throw e;
-              }
-              throw new InvalidResponseError('Server response was invalid.');
-            }
-          } else {
-            success(response);
-          }
-        } else {
+        return response.text().then(text => {
           let errObj;
           try {
-            errObj = JSON.parse(
-              HttpRequester.filterPhpMessages(this.responseText)
-            );
+            errObj = JSON.parse(HttpRequester.filterPhpMessages(text));
           } catch (e) {
             if (!(e instanceof SyntaxError)) {
               throw e;
             }
           }
+
           if (typeof errObj !== 'object') {
             errObj = {
-              textStatus: this.responseText,
+              textStatus: response.statusText,
             };
           }
-          errObj.status = this.status;
-          error(
-            this.status < 500
-              ? new ClientError(errObj)
-              : new ServerError(errObj)
-          );
+          errObj.status = response.status;
+          throw response.status < 500
+            ? new ClientError(errObj)
+            : new ServerError(errObj);
+        });
+      })
+      .then(response => {
+        if (opt.dataType === 'json') {
+          if (!response.length) {
+            throw new InvalidResponseError('Server response was empty.');
+          }
+          try {
+            return JSON.parse(response);
+          } catch (e) {
+            if (!(e instanceof SyntaxError)) {
+              throw e;
+            }
+            throw new InvalidResponseError(
+              'Server response was invalid.',
+              response
+            );
+          }
+        } else {
+          return response;
         }
-      }
-    };
+      });
   }
 }
 

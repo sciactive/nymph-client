@@ -4,7 +4,7 @@ import { EntitySorter } from './EntitySorter';
 import { HttpRequester } from './HttpRequester';
 import { getDataReference } from './utils';
 
-const requester = new HttpRequester();
+let requester;
 
 export class Nymph {
   static setEntityClass(className, entityClass) {
@@ -20,6 +20,22 @@ export class Nymph {
 
   static init(NymphOptions) {
     this.restURL = NymphOptions.restURL;
+
+    requester = new HttpRequester(
+      'fetch' in NymphOptions ? NymphOptions.fetch : null
+    );
+
+    requester.on('request', (_requester, url, options) => {
+      for (let i = 0; i < Nymph.requestCallbacks.length; i++) {
+        Nymph.requestCallbacks[i] && Nymph.requestCallbacks[i](url, options);
+      }
+    });
+
+    requester.on('response', (_requester, response) => {
+      for (let i = 0; i < Nymph.responseCallbacks.length; i++) {
+        Nymph.responseCallbacks[i] && Nymph.responseCallbacks[i](response);
+      }
+    });
   }
 
   static newUID(name) {
@@ -36,10 +52,7 @@ export class Nymph {
     return requester.PUT({
       url: this.restURL,
       dataType: 'json',
-      data: {
-        action: 'uid',
-        data: JSON.stringify({ name: name, value: value }),
-      },
+      data: { action: 'uid', data: { name, value } },
     });
   }
 
@@ -55,8 +68,8 @@ export class Nymph {
 
   static deleteUID(name) {
     return requester.DELETE({
-      type: 'DELETE',
       url: this.restURL,
+      dataType: 'text',
       data: { action: 'uid', data: name },
     });
   }
@@ -120,7 +133,7 @@ export class Nymph {
       dataType: 'json',
       data: {
         action: plural ? 'entities' : 'entity',
-        data: JSON.stringify(data),
+        data,
       },
     }).then(response => {
       if (plural && entity.length === response.length) {
@@ -161,7 +174,7 @@ export class Nymph {
         dataType: 'json',
         data: {
           action: 'entity',
-          data: JSON.stringify([options, ...selectors]),
+          data: [options, ...selectors],
         },
       })
       .then(data => {
@@ -179,7 +192,7 @@ export class Nymph {
         dataType: 'json',
         data: {
           action: 'entities',
-          data: JSON.stringify([options, ...selectors]),
+          data: [options, ...selectors],
         },
       })
       .then(data => {
@@ -235,7 +248,15 @@ export class Nymph {
       dataType: 'json',
       data: {
         action: _plural ? 'entities' : 'entity',
-        data: JSON.stringify(entity),
+        data: _plural
+          ? entity.map(e => ({
+              guid: e.guid,
+              class: e.constructor.class,
+            }))
+          : {
+              guid: entity.guid,
+              class: entity.constructor.class,
+            },
       },
     });
   }
@@ -251,12 +272,12 @@ export class Nymph {
         dataType: 'json',
         data: {
           action: 'method',
-          data: JSON.stringify({
+          data: {
             entity,
             stateless,
             method,
             params: getDataReference(params),
-          }),
+          },
         },
       })
       .then(data => ({
@@ -272,12 +293,12 @@ export class Nymph {
         dataType: 'json',
         data: {
           action: 'method',
-          data: JSON.stringify({
+          data: {
             class: className,
             static: true,
             method: method,
             params: getDataReference(params),
-          }),
+          },
         },
       })
       .then(data => this.initEntitiesFromData(data));
@@ -323,6 +344,7 @@ export class Nymph {
 }
 
 Nymph.entityClasses = {};
+Nymph.requestCallbacks = [];
 Nymph.responseCallbacks = [];
 
 export class ClassNotAvailableError extends Error {
@@ -338,16 +360,6 @@ export class InvalidRequestError extends Error {
     this.name = 'InvalidRequestError';
   }
 }
-
-// Initialization
-
-requester.on('response', data => {
-  for (let i = 0; i < Nymph.responseCallbacks.length; i++) {
-    if (typeof Nymph.responseCallbacks[i] !== 'undefined') {
-      Nymph.responseCallbacks[i](Nymph);
-    }
-  }
-});
 
 if (typeof NymphOptions !== 'undefined') {
   Nymph.init(NymphOptions);
