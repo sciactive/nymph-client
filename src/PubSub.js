@@ -5,13 +5,16 @@ import { Entity } from './Entity';
 
 let authToken = null;
 
-if (typeof WebSocket === 'undefined') {
-  throw new Error('Nymph-PubSub requires WebSocket!');
-}
-
 export class PubSub {
   static init(NymphOptions) {
     this.pubsubURL = NymphOptions.pubsubURL;
+    this.WebSocket =
+      'WebSocket' in NymphOptions ? NymphOptions.WebSocket : WebSocket;
+
+    if (!this.WebSocket) {
+      throw new Error('Nymph-PubSub requires WebSocket!');
+    }
+
     if (typeof addEventListener !== 'undefined') {
       addEventListener('online', () => this.connect());
     }
@@ -130,8 +133,8 @@ export class PubSub {
     // Are we already connected?
     if (
       this.connection &&
-      (this.connection.readyState === WebSocket.OPEN ||
-        this.connection.readyState === WebSocket.CONNECTING)
+      (this.connection.readyState === this.WebSocket.OPEN ||
+        this.connection.readyState === this.WebSocket.CONNECTING)
     ) {
       return;
     }
@@ -140,13 +143,21 @@ export class PubSub {
     this._attemptConnect();
   }
 
+  static close() {
+    if (!this.connection) {
+      return;
+    }
+
+    this.connection.close(4200, 'Closure requested by application.');
+  }
+
   static _waitForConnection(attempts = 0) {
     // Wait 5 seconds, then check and attempt connection again if
     // unsuccessful. Keep repeating until successful.
     setTimeout(() => {
-      if (this.connection.readyState !== WebSocket.OPEN) {
+      if (this.connection.readyState !== this.WebSocket.OPEN) {
         if (
-          this.connection.readyState !== WebSocket.CONNECTING ||
+          this.connection.readyState !== this.WebSocket.CONNECTING ||
           attempts >= 5
         ) {
           this.connection.close();
@@ -161,7 +172,7 @@ export class PubSub {
 
   static _attemptConnect() {
     // Attempt to connect.
-    this.connection = new WebSocket(this.pubsubURL);
+    this.connection = new this.WebSocket(this.pubsubURL);
     this.connection.onopen = this._onopen.bind(this);
     this.connection.onmessage = this._onmessage.bind(this);
   }
@@ -250,12 +261,15 @@ export class PubSub {
 
   static _onclose(e) {
     if (typeof console !== 'undefined') {
-      console.log('Nymph-PubSub connection closed: ', e);
+      console.log(`Nymph-PubSub connection closed: ${e.code} ${e.reason}`);
     }
     for (let i = 0; i < this.disconnectCallbacks.length; i++) {
       this.disconnectCallbacks[i] && this.disconnectCallbacks[i]();
     }
-    if (typeof navigator === 'undefined' || navigator.onLine) {
+    if (
+      e.code !== 4200 &&
+      (typeof navigator === 'undefined' || navigator.onLine)
+    ) {
       this.connection.close();
       this._waitForConnection();
       this._attemptConnect();
@@ -267,7 +281,9 @@ export class PubSub {
   }
 
   static isConnectionOpen() {
-    return this.connection && this.connection.readyState === WebSocket.OPEN;
+    return (
+      this.connection && this.connection.readyState === this.WebSocket.OPEN
+    );
   }
 
   static subscribeQuery(query, callbacks) {
@@ -547,6 +563,7 @@ export class PubSub {
 
 PubSub.connection = null;
 PubSub.pubsubURL = null;
+PubSub.WebSocket = null;
 PubSub.subscriptions = {
   queries: {},
   uids: {},
