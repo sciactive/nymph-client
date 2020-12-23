@@ -361,6 +361,7 @@ export class Entity {
     }
     const patch = {
       guid: this.guid,
+      mdate: this.mdate,
       class: this.constructor.class,
       addTags: this.tags.filter(tag => this.$originalTags.indexOf(tag) === -1),
       removeTags: this.$originalTags.filter(
