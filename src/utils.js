@@ -29,7 +29,7 @@ export function getDataReference(item) {
     if (Object.create) {
       newObj = Object.create(item);
     } else {
-      const F = function() {};
+      const F = function () {};
       F.prototype = item;
       newObj = new F();
     }

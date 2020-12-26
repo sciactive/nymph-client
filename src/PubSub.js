@@ -27,7 +27,7 @@ export class PubSub {
     let getEntity = Nymph.getEntity;
     let getUID = Nymph.getUID;
 
-    Nymph.getEntities = function(options, ...selectors) {
+    Nymph.getEntities = function (options, ...selectors) {
       const promise = getEntities.apply(Nymph, [options, ...selectors]);
       promise.query = JSON.stringify([options, ...selectors]);
       promise.subscribe = (resolve, reject, count) => {
@@ -43,7 +43,7 @@ export class PubSub {
       return promise;
     };
 
-    Nymph.getEntity = function(options, ...selectors) {
+    Nymph.getEntity = function (options, ...selectors) {
       const promise = getEntity.apply(Nymph, [options, ...selectors]);
       options.limit = 1;
       promise.query = JSON.stringify([options, ...selectors]);
@@ -71,7 +71,7 @@ export class PubSub {
       return promise;
     };
 
-    Nymph.getUID = function(name) {
+    Nymph.getUID = function (name) {
       const promise = getUID.apply(Nymph, [name]);
       promise.subscribe = (resolve, reject, count) => {
         const callbacks = [resolve, reject, count];
@@ -88,7 +88,7 @@ export class PubSub {
       return promise;
     };
 
-    Entity.prototype.$subscribe = function(resolve, reject, count) {
+    Entity.prototype.$subscribe = function (resolve, reject, count) {
       if (!this.guid) {
         return false;
       }
@@ -464,7 +464,7 @@ export class PubSub {
         }
       }
       // Now we must remove the deleted ones.
-      remove.sort(function(a, b) {
+      remove.sort(function (a, b) {
         // Sort backwards so we can remove in reverse order. (Preserves
         // indices.)
         if (a > b) return -1;
