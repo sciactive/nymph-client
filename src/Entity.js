@@ -60,12 +60,13 @@ export class Entity {
           console.error(
             `Tried to delete data on a sleeping reference: ${name}`
           );
-          return;
+          return false;
         }
         if (data.hasOwnProperty(name)) {
           this.$dirty[name] = true;
-          delete data[name];
+          return delete data[name];
         }
+        return true;
       },
     };
     this.$data = new Proxy({}, this.$dataHandler);
@@ -122,9 +123,9 @@ export class Entity {
 
       deleteProperty(entity, name) {
         if (name in entity) {
-          delete entity[name];
+          return delete entity[name];
         } else if (name in entity.$data) {
-          delete entity.$data[name];
+          return delete entity.$data[name];
         }
       },
 
