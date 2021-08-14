@@ -4,6 +4,10 @@
 
 Powerful object data storage and querying for collaborative web apps.
 
+## Deprecation Notice
+
+The PHP implementation of Nymph/Tilmeld has been deprecated. It will no longer have any new features added. Instead, a new version of Nymph running on Node.js, written entirely in TypeScript will replace the PHP implementation. You can find it over at the [Nymph.js repo](https://github.com/sciactive/nymphjs).
+
 ## Installation
 
 ### Automatic Setup
@@ -26,7 +30,7 @@ This repository is the JavaScript client for browsers. You can find UMD in `dist
   <script>
     NymphOptions = {
       restURL: 'https://yournymphrestserver/path/to/your/rest.php',
-      pubsubURL: 'wss://yournymphpubsubserver'
+      pubsubURL: 'wss://yournymphpubsubserver',
     };
   </script>
   <!-- End Nymph setup -->
@@ -56,10 +60,10 @@ When you use Babel, you can add the `@babel/plugin-transform-classes` plugin to 
 
 For detailed docs, check out the wiki:
 
-* [Entity Class](https://github.com/sciactive/nymph/wiki/Entity-Class)
-* [Entity Querying](https://github.com/sciactive/nymph/wiki/Entity-Querying)
-* [Extending the Entity Class](https://github.com/sciactive/nymph/wiki/Extending-the-Entity-Class)
-* [Subscribing to Queries](https://github.com/sciactive/nymph/wiki/Subscribing-to-Queries)
+- [Entity Class](https://github.com/sciactive/nymph/wiki/Entity-Class)
+- [Entity Querying](https://github.com/sciactive/nymph/wiki/Entity-Querying)
+- [Extending the Entity Class](https://github.com/sciactive/nymph/wiki/Extending-the-Entity-Class)
+- [Subscribing to Queries](https://github.com/sciactive/nymph/wiki/Subscribing-to-Queries)
 
 Here's an overview:
 
@@ -89,26 +93,33 @@ let subscription = myTodo.$subscribe(() => {
 // Subscribing to a query.
 let todos = [];
 let userCount = 0;
-let subscription = Nymph.getEntities({
-  'class': Todo.class
-}, {
-  'type': '&',
-  '!tag': 'archived'
-}).subscribe(newTodos => {
-  // The first time this is called, newTodos will be an array of Todo entities.
-  // After that, newTodos will be a publish event object.
+let subscription = Nymph.getEntities(
+  {
+    class: Todo.class,
+  },
+  {
+    type: '&',
+    '!tag': 'archived',
+  }
+).subscribe(
+  newTodos => {
+    // The first time this is called, newTodos will be an array of Todo entities.
+    // After that, newTodos will be a publish event object.
 
-  // This takes an existing array of entities and either updates it to match
-  // another array, or performs actions from a publish event object to update
-  // it.
-  PubSub.updateArray(todos, newTodos);
+    // This takes an existing array of entities and either updates it to match
+    // another array, or performs actions from a publish event object to update
+    // it.
+    PubSub.updateArray(todos, newTodos);
 
-  // `todos` is now up to date with the latest publishes from the server.
-}, err => alert(err), count => {
-  // If you provide this callback, the server will send updates of how many
-  // clients are subscribed to this query.
-  userCount = count;
-});
+    // `todos` is now up to date with the latest publishes from the server.
+  },
+  err => alert(err),
+  count => {
+    // If you provide this callback, the server will send updates of how many
+    // clients are subscribed to this query.
+    userCount = count;
+  }
+);
 
 // ...
 
