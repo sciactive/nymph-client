@@ -24,7 +24,7 @@ export class Entity {
     this.$sleepingReference = false;
     this.$readyPromise = null;
     this.$dataHandler = {
-      has(data, name) {
+      has: (data, name) => {
         if (typeof name !== 'symbol' && this.$isASleepingReference) {
           console.error(`Tried to check data on a sleeping reference: ${name}`);
           return false;
@@ -127,6 +127,7 @@ export class Entity {
         } else if (name in entity.$data) {
           return delete entity.$data[name];
         }
+        return true;
       },
 
       getPrototypeOf(entity) {
